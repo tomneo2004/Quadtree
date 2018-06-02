@@ -130,13 +130,10 @@ namespace NP.NPQuadtree{
 
 			set{
 
-				float dx = value.x - _center.x;
-				float dy = value.y - _center.y;
-
-				_x += dx;
-				_y += dy;
-
 				_center = value;
+
+				_x = _center.x - _width / 2.0f;
+				_y = _center.y + _height / 2.0f;
 			}
 		}
 
