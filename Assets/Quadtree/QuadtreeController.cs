@@ -18,8 +18,6 @@ namespace NP.NPQuadtree{
 		public int objToAdd = 0;
 		public float addInterval = 0.0f;
 
-		QtPointAgent[] agents;
-
 		QtPointAgent pickAgent;
 		QtPointAgent placedAgent;
 
@@ -61,8 +59,6 @@ namespace NP.NPQuadtree{
 			}
 
 			Debug.Log ("Finish add "+quadtree.TotalElementCount);
-
-			agents = GameObject.FindObjectsOfType<QtPointAgent> ();
 
 
 			quadtree.LevelDesc ();
