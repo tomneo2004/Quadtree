@@ -1,0 +1,69 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using NP.NPQuadtree;
+
+public class BoundTest : MonoBehaviour {
+
+	NodeBound rect;
+
+	public float x = -2.5f;
+	public float y = 2.5f;
+	public float width = 5.0f;
+	public float height = 5.0f;
+	public Vector2 center;
+
+	// Use this for initialization
+	void Start () {
+
+		rect = new NodeBound (center, new Vector2 (width, height));
+		//rect = new NodeBound(x,y,width,height);
+	}
+	
+	// Update is called once per frame
+	void Update () {
+
+		center = rect.center;
+		//rect.x = x;
+		//rect.y = y;
+		//rect.width = width;
+		//rect.height = height;
+
+		//rect.center = center;
+		rect.widthFromCenter = width;
+		rect.heightFromCenter = height;
+	}
+
+	void OnDrawGizmos(){
+
+		if (rect == null)
+			return;
+
+		float scale = 0.04f;
+
+		//draw bound
+		Gizmos.color = Color.white;
+		Vector2[] corners = rect.AllCorners;
+
+		for (int i = 0; i < corners.Length-1; i++) {
+
+			Gizmos.DrawLine (new Vector3 (corners [i].x, corners [i].y),
+				new Vector3 (corners [i + 1].x, corners [i + 1].y));
+		}
+
+		Gizmos.DrawLine (new Vector3 (corners [3].x, corners [3].y),
+			new Vector3 (corners [0].x, corners [0].y));
+
+		//Draw corner
+		Gizmos.color = Color.red;
+		for (int i = 0; i < corners.Length; i++) {
+
+			Gizmos.DrawCube (new Vector3(corners[i].x, corners[i].y),
+				new Vector3(rect.width * scale, rect.height * scale));
+		}
+
+		//draw center
+		Gizmos.color = Color.red;
+		Gizmos.DrawSphere (rect.center, rect.width*scale);
+	}
+}
