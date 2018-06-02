@@ -8,6 +8,13 @@ namespace NP.NPQuadtree{
 	public class NodeBound{
 
 		float _x;
+
+		/**
+		 * Get x
+		 * 
+		 * Set x will move rectangle on x axis and remain
+		 * same width. X of center will be changed
+		 **/
 		public float x {
 
 			get {
@@ -21,6 +28,13 @@ namespace NP.NPQuadtree{
 		}
 
 		float _y;
+
+		/**
+		 * Get y
+		 * 
+		 * Set y will move rectangle on y axis and remain
+		 * same height. Y of center will be changed 
+		 **/
 		public float y {
 
 			get {
@@ -34,6 +48,13 @@ namespace NP.NPQuadtree{
 		}
 
 		float _width;
+
+		/**
+		 * Get width
+		 * 
+		 * Set width will cause bound's width extend from x while
+		 * x remain same position. Center's x will be changed
+		 **/
 		public float width {
 
 			get {
@@ -46,7 +67,27 @@ namespace NP.NPQuadtree{
 			}
 		}
 
+		/**
+		 * Set width for rectangle extend from center 
+		 **/
+		public float widthFromCenter{
+
+			set{
+
+				_width = value;
+
+				_x = _center.x - _width / 2.0f;
+			}
+		}
+
 		float _height;
+
+		/**
+		 * Get height
+		 * 
+		 * Set width will cause bound's height extend from y while
+		 * x remain same position. Center's y will be changed
+		 **/
 		public float height {
 
 			get {
@@ -59,10 +100,65 @@ namespace NP.NPQuadtree{
 			}
 		}
 
+		/**
+		 * Set height for rectangle extend from center 
+		 **/
+		public float heightFromCenter{
+
+			set{
+
+				_height = value;
+
+				_y = _center.y + _height / 2.0f;
+			}
+		}
+
 		Vector2 _center;
-		public Vector2 center{ get{ return _center;}}
+
+		/**
+		 * Get center of bound
+		 * 
+		 * Set center will move rectangle on both x and y axis and alter x and y position of topleft corner
+		 * while width and height remain the same size.
+		 **/
+		public Vector2 center{
+			
+			get{ 
+
+				return _center;
+			}
+
+			set{
+
+				float dx = value.x - _center.x;
+				float dy = value.y - _center.y;
+
+				_x += dx;
+				_y += dy;
+
+				_center = value;
+			}
+		}
 
 		public Vector2 size{ get{ return new Vector2 (_width, _height);}}
+
+		/**
+		 * Get 4 corners of bound in clockwise
+		 **/
+		public Vector2[] AllCorners{
+
+			get{
+
+				Vector2[] corners = new Vector2[4];
+
+				corners [0] = new Vector2 (_x, _y);
+				corners [1] = new Vector2 (_x + _width, _y);
+				corners [2] = new Vector2 (_x + _width, _y - _height);
+				corners [3] = new Vector2 (_x, _y - _height);
+
+				return corners;
+			}
+		}
 
 		/**
 		 * Get TopLeft corner position
@@ -147,10 +243,10 @@ namespace NP.NPQuadtree{
 			_height = Mathf.Abs(height);
 		}
 
-		public NodeBound(Vector2 position, Vector2 size){
+		public NodeBound(Vector2 center, Vector2 size){
 
-			_x = position.x;
-			_y = position.y;
+			_x = center.x - size.x / 2.0f;
+			_y = center.y + size.y / 2.0f;
 			_width = Mathf.Abs(size.x);
 			_height = Mathf.Abs(size.y);
 		}
@@ -158,6 +254,20 @@ namespace NP.NPQuadtree{
 		void CalculateCenter(){
 
 			_center = new Vector2 (_x + _width / 2.0f, _y - _height / 2.0f);
+		}
+
+		/**
+		 * Extend rectangle with amount of value on x and y
+		 * 
+		 * Extend is from center
+		 **/
+		public void ExtendBound(Vector2 amount){
+
+			_width = Mathf.Abs (_width + amount.x);
+			_height = Mathf.Abs (_height + amount.y);
+
+			_x = _center.x - _width / 2.0f;
+			_y = _center.y + _height / 2.0f;
 		}
 
 		public bool ContainPoint2D(Vector2 point){
