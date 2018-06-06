@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using NP.NPQuadtree;
+using NP.Convex.Collision;
+using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
@@ -22,9 +24,9 @@ namespace NP.NPQuadtree{
 			return new Vector2 (transform.position.x, transform.position.y);
 		}
 
-		public virtual IntersectionResult IntersectWithBoundary (NodeBound nodeBoundary){
+		public virtual CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary){
 
-			return IntersectionResult.None;
+			return CollisionResult.None;
 		}
 
 		public virtual bool InQueryRange (IQuadtreeQuery query){

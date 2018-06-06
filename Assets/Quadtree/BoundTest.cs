@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using NP.NPQuadtree;
+using NP.Convex.Shape;
 
 public class BoundTest : MonoBehaviour {
 
-	NodeBound rect;
+	ConvexRect rect;
 
 	public float x = -2.5f;
 	public float y = 2.5f;
@@ -16,8 +17,8 @@ public class BoundTest : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 
-		rect = new NodeBound (center, new Vector2 (width, height));
-		//rect = new NodeBound(x,y,width,height);
+		rect = new ConvexRect (center, new Vector2 (width, height));
+		//rect = new ConvexRect(x,y,width,height);
 	}
 	
 	// Update is called once per frame

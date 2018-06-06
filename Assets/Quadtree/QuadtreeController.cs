@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using NP.NPQuadtree;
+using NP.Convex.Collision;
+using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
@@ -10,7 +12,7 @@ namespace NP.NPQuadtree{
 		public int capacity = 4;
 		public Vector2 quadtreeSize;
 
-		NodeBound boundary;
+		ConvexRect boundary;
 		QuadtreeNode quadtree;
 
 		public GameObject obj;
@@ -26,8 +28,7 @@ namespace NP.NPQuadtree{
 			quadtreeSize = new Vector2(Camera.main.orthographicSize-1.0f, Camera.main.orthographicSize-1.0f);
 
 
-			boundary = new NodeBound(new Vector2(transform.position.x - quadtreeSize.x/2.0f,
-				transform.position.y + quadtreeSize.y/2.0f),
+			boundary = new ConvexRect(new Vector2(transform.position.x, transform.position.y),
 				new Vector2(quadtreeSize.x, quadtreeSize.y)
 			);
 
