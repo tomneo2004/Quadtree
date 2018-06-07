@@ -39,6 +39,17 @@ namespace NP.NPQuadtree{
 
 		public virtual void AfterAddToQuadtreeNode (QuadtreeNode node){
 		}
+			
+		public virtual Vector2 GetCenter (){
+
+			return new Vector2(transform.position.x, transform.position.y);
+		}
+
+
+		public virtual GameObject GetGameObject (){
+
+			return gameObject;
+		}
 	}
 }
 

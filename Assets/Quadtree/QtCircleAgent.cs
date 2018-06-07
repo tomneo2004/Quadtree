@@ -54,10 +54,23 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 		base.AfterAddToQuadtreeNode (node);
 	}
 
+	public override Vector2 GetCenter (){
+
+		return circle.Center;
+	}
+
+
+	public override GameObject GetGameObject (){
+
+		return gameObject;
+	}
+
 	public virtual float Radius(){
 
 		return radius;
 	}
+
+
 
 	void OnDrawGizmos(){
 

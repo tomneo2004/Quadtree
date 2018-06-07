@@ -42,6 +42,16 @@ namespace NP.NPQuadtree{
 		 **/
 		void AfterAddToQuadtreeNode (QuadtreeNode node);
 
+		/**
+		 * Return center point of agent
+		 **/
+		Vector2 GetCenter ();
+
+		/**
+		 * Return gameobject of agent
+		 **/
+		GameObject GetGameObject ();
+
 	}
 
 	public interface IQuadtreePointAgent : IQuadtreeAgent{
@@ -573,12 +583,18 @@ namespace NP.NPQuadtree{
 
 		//TODO CHECK ELEMENT BOUNDARY
 		/**
+		 * Delegate that used to compare agent need to be added for FindElements
+		 * 
+		 * return return false to remove agent
+		 **/
+		public delegate bool OnCompare(IQuadtreeAgent agent);
+		/**
 		 * Find possible elements that might contact with given element
 		 * under this node
 		 * 
 		 * Param includeSelf is true given element might be in the result, default is false
 		 **/
-		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false){
+		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false, OnCompare compare = null){
 
 			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
 
@@ -596,11 +612,11 @@ namespace NP.NPQuadtree{
 
 					if (r == CollisionResult.Overlap) {//could have more than one child node
 
-						result.AddRange (n.FindElements (element));
+						result.AddRange (n.FindElements (element, includeSelf, compare));
 
 					} else if (r == CollisionResult.Fit) {//can only fit into one child node
 
-						result.AddRange (n.FindElements (element));
+						result.AddRange (n.FindElements (element, includeSelf, compare));
 						break;
 					}
 				}
@@ -640,6 +656,22 @@ namespace NP.NPQuadtree{
 				result.Remove (element);
 			}
 
+			if (compare != null) {
+
+				foreach (IQuadtreeAgent e in elements) {
+
+					if (!compare (e))
+						result.Remove (e);
+				}
+
+				foreach (IQuadtreeAgent e in overlapElements) {
+
+					if (!compare (e))
+						result.Remove (e);
+				}
+			}
+
+				
 			return result;
 		}
 

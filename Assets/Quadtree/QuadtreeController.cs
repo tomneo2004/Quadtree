@@ -134,7 +134,16 @@ namespace NP.NPQuadtree{
 			if (pickAgent != null) {
 
 				Gizmos.color = Color.yellow;
-				List<IQuadtreeAgent> foundAgent = quadtree.FindElements (pickAgent);
+				List<IQuadtreeAgent> foundAgent = quadtree.FindElements (pickAgent, false, delegate(IQuadtreeAgent agent) {
+
+					float dist = (agent.GetCenter() - pickAgent.GetCenter()).magnitude;
+
+					if(dist <= 10.0f)
+						return true;
+
+					return false;
+				});
+
 				foreach (IQuadtreeAgent a in foundAgent) {
 
 					Gizmos.DrawLine (new Vector3 (a.Position2D ().x, a.Position2D ().y, transform.position.z),

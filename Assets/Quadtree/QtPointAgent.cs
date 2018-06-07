@@ -49,6 +49,17 @@ namespace NP.NPQuadtree{
 
 			base.AfterAddToQuadtreeNode (node);
 		}
+
+		public override Vector2 GetCenter (){
+
+			return new Vector2(transform.position.x, transform.position.y);
+		}
+
+
+		public override GameObject GetGameObject (){
+
+			return gameObject;
+		}
 	}
 }
 

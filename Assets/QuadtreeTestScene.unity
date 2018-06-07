@@ -223,8 +223,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   capacity: 3
   quadtreeSize: {x: 50, y: 50}
-  obj: {fileID: 1888161321551962, guid: 4fb2310e441da1b479222fd20ddc5a94, type: 2}
-  objToAdd: 300
+  obj: {fileID: 1593004005502172, guid: 585daf1a083ba9546b202176e0dbc9dc, type: 2}
+  objToAdd: 0
   addInterval: 0.01
 --- !u!4 &906898602
 Transform:
