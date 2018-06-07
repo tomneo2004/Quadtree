@@ -33,6 +33,12 @@ namespace NP.NPQuadtree{
 
 			return false;
 		}
+
+		public virtual void BeforeAddToQuadtreeNode (QuadtreeNode node){
+		}
+
+		public virtual void AfterAddToQuadtreeNode (QuadtreeNode node){
+		}
 	}
 }
 
