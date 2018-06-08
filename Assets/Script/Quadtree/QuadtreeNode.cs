@@ -172,6 +172,11 @@ namespace NP.NPQuadtree{
 		QuadtreeNode[] nodes;
 
 		/**
+		 * Get all nodes under this quadtree nodex
+		 **/
+		public QuadtreeNode[] AllNodes{ get{ return nodes;}}
+
+		/**
 		 * All elements in list should be add next frame not immediately
 		 **/
 		List<IQuadtreeAgent> elementsNextFrame;
@@ -220,16 +225,20 @@ namespace NP.NPQuadtree{
 		 **/
 		QuadtreeNode(QuadtreeNode parent){
 
-			parentNode = parent;
-			elements = new List<IQuadtreeAgent> (elementCapacity);
-			overlapElements = new List<IQuadtreeAgent> ();
-			elementsNextFrame = new List<IQuadtreeAgent> ();
+			InitNode (parent);
+		}
 
-			//set depth to 0 if this is root
-			if (parent == null)
-				depthIndex = 0;
-			else
-				depthIndex = parent.depthIndex + 1;
+		QuadtreeNode(QuadtreeNode parent, ConvexRect nodeBoundary){
+
+			InitNode (parent);
+			SetBoundary (nodeBoundary);
+		}
+
+		QuadtreeNode(QuadtreeNode parent, float x, float y , float width, float height){
+
+			InitNode (parent);
+			ConvexRect nodeBoundary = new ConvexRect (x, y, width, height);
+			SetBoundary (nodeBoundary);
 		}
 
 		/**
@@ -243,6 +252,24 @@ namespace NP.NPQuadtree{
 			elements = null;
 
 			nodes = null;
+		}
+
+		/**
+		 * Initilize quadtree node
+		 **/
+		void InitNode(QuadtreeNode parent){
+
+			elements = new List<IQuadtreeAgent> (elementCapacity);
+			overlapElements = new List<IQuadtreeAgent> ();
+			elementsNextFrame = new List<IQuadtreeAgent> ();
+
+			parentNode = parent;
+
+			//set depth to 0 if this is root
+			if (parent == null)
+				depthIndex = 0;
+			else
+				depthIndex = parent.depthIndex + 1;
 		}
 
 		/**
@@ -313,9 +340,7 @@ namespace NP.NPQuadtree{
 		}
 
 		/**
-		 * Set boundary 
-		 * 
-		 * Center will automatically be calculated
+		 * Set boundary of this node
 		 **/
 		private void SetBoundary(ConvexRect nodeBoundary){
 
@@ -616,23 +641,23 @@ namespace NP.NPQuadtree{
 
 			//TopLeft(NorthWest)
 			newBoundary = new ConvexRect(boundary.x, boundary.y, width, height);
-			nodes[0] = new QuadtreeNode (this);
-			nodes[0].SetBoundary (newBoundary);
+			nodes[0] = new QuadtreeNode (this,newBoundary);
+
 
 			//TopRight(NorthEast)
 			newBoundary = new ConvexRect(boundary.x+width, boundary.y, width, height);
-			nodes[1] = new QuadtreeNode (this);
-			nodes[1].SetBoundary (newBoundary);
+			nodes[1] = new QuadtreeNode (this, newBoundary);
+
 
 			//BottomRight(SouthEast)
 			newBoundary = new ConvexRect(boundary.x+width, boundary.y - height, width, height);
-			nodes[2] = new QuadtreeNode (this);
-			nodes[2].SetBoundary (newBoundary);
+			nodes[2] = new QuadtreeNode (this, newBoundary);
+
 
 			//BottomLeft(SouthWest)
 			newBoundary = new ConvexRect(boundary.x, boundary.y - height, width, height);
-			nodes[3] = new QuadtreeNode (this);
-			nodes[3].SetBoundary (newBoundary);
+			nodes[3] = new QuadtreeNode (this, newBoundary);
+
 
 
 		}

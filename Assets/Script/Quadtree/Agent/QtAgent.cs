@@ -38,14 +38,52 @@ namespace NP.NPQuadtree{
 					switch (result) {
 
 					case CollisionResult.Fit:
-						if (!currentNode.IsLeaf) {
-							currentNode.Remove (this);
-							currentNode.Add (this);
+						if (!currentNode.IsLeaf) {//has child node
+
+							//for all child nodes
+							foreach (QuadtreeNode n in currentNode.AllNodes) {
+
+								//see if agent in this child node
+								if (n.Boundary.ContainPoint2D (this.GetCenter ())) {
+								
+									//if agent fit in this child node
+									if (IntersectWithBoundary (n.Boundary) == CollisionResult.Fit) {
+									
+										currentNode.Remove (this);
+										currentNode.Add (this);
+										break;
+									}
+								}
+							}
+
 						}
 						break;
 					case CollisionResult.Overlap:
+						/*
+						if (currentNode.Parent != null) {
+
+							currentNode.Remove (this);
+							currentNode.Parent.Add (this);
+						}
+						*/
+
+						//find parent until it contain this agent
+						QuadtreeNode pNode = currentNode.Parent;
+						while (pNode != null) {
+
+							if (IntersectWithBoundary (pNode.Boundary) == CollisionResult.Fit) {
+								break;
+							}
+
+							pNode = pNode.Parent;
+						}
+
 						currentNode.Remove (this);
-						currentNode.rootQuadtree ().Add (this);//add from root quadtree
+						if (pNode == null)//root node
+							currentNode.rootQuadtree ().Add (this);
+						else
+							pNode.Add (this);
+
 						break;
 					case CollisionResult.None:
 						currentNode.Remove (this);
