@@ -42,6 +42,8 @@ namespace NP.NPQuadtree{
 
 		IEnumerator AutoAddObject(){
 
+			Debug.Log ("Adding... "+quadtree.TotalElementCount);
+
 			for (int i = 0; i < objToAdd; i++) {
 
 				Vector3 pos;
@@ -65,6 +67,24 @@ namespace NP.NPQuadtree{
 			quadtree.LevelDesc ();
 		}
 
+		IEnumerator RemoveAgents(QtAgent[] agents){
+
+			Debug.Log ("Removing... "+quadtree.TotalElementCount);
+
+			foreach (QtAgent agent in agents) {
+
+				quadtree.Remove (agent);
+				GameObject.Destroy (agent.GetGameObject ());
+
+				yield return new WaitForSeconds (addInterval);
+			}
+
+			Debug.Log ("Finish remove "+quadtree.TotalElementCount);
+
+
+			quadtree.LevelDesc ();
+		}
+
 		// Use this for initialization
 		void Start () {
 		}
@@ -72,6 +92,8 @@ namespace NP.NPQuadtree{
 		void LateUpdate(){
 
 			quadtree.UpdateQuadtree ();
+
+			//quadtree.LevelDesc ();
 		}
 
 		// Update is called once per frame
@@ -79,22 +101,21 @@ namespace NP.NPQuadtree{
 
 			if (Input.GetButtonDown("Fire1")) {
 
-				if (placedAgent != null) {
-
-					QuadtreeNode n = quadtree.FindNode (placedAgent);
-					n.debugDrawColor = Color.white;
-				}
-
 				Vector3 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
 				pos.z = transform.position.z;
 
 				GameObject go = Instantiate (obj);
 				go.transform.position = pos;
+				go.transform.rotation = Quaternion.identity;
 
 				quadtree.Add (go.GetComponent<QtAgent> ());
 
 				placedAgent = go.GetComponent<QtAgent>();
 
+				int cornerIndex = Random.Range (0, quadtree.Boundary.AllCorners.Length);
+				Vector2 corner = quadtree.Boundary.AllCorners [cornerIndex];
+				Vector2 dir = (corner - placedAgent.GetCenter ()).normalized * 3.0f;
+				go.GetComponent<Rigidbody2D> ().AddForce (dir);
 			}
 
 			if (Input.GetButtonDown ("Fire2")) {
@@ -112,21 +133,29 @@ namespace NP.NPQuadtree{
 
 
 			}
+
+			if (Input.GetButtonDown ("Jump")) {
+
+				QtAgent[] agents = GameObject.FindObjectsOfType<QtAgent> ();
+
+				StartCoroutine (RemoveAgents (agents));
+
+			}
 				
 		}
 
-		void OnDrawGizmosSelected(){
+		void OnDrawGizmos(){
 
 			if (quadtree != null)
 				quadtree.DebugDraw (transform.position.z);
-
+			/*
 			if (placedAgent != null) {
 				
 				QuadtreeNode n = quadtree.FindNode (placedAgent);
 				if (n != null) {
 
 					n.debugDrawColor = Color.red;
-					n.DebugDraw (transform.position.z);
+					n.DebugDraw (transform.position.z, false);
 				}
 
 			}
@@ -150,6 +179,7 @@ namespace NP.NPQuadtree{
 						new Vector3 (pickAgent.Position2D ().x, pickAgent.Position2D ().y, transform.position.z));
 				}
 			}
+			*/
 				
 		}
 			

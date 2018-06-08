@@ -113,6 +113,11 @@ namespace NP.NPQuadtree{
 		int depthIndex = 0;
 
 		/**
+		 * Flag to tell quadtree to orgnize tree next frame
+		 **/
+		bool organizeTree = false;
+
+		/**
 		 * Return depth index of QuadtreeNode
 		 **/
 		public int DepthIndex{ get{ return depthIndex;}}
@@ -243,31 +248,32 @@ namespace NP.NPQuadtree{
 		/**
 		 * Draw Quadtree boundary
 		 **/
-		public void DebugDraw(float z){
+		public void DebugDraw(float z, bool child = true){
 
 			z = z + depthIndex;
+
+			if (child) {
+				//Draw child node
+				if (nodes != null) {
+
+					foreach (QuadtreeNode n in nodes) {
+
+						n.DebugDraw (z, child);
+					}
+				}
+			}
 
 
 			//boundary for drawing
 			float offset = 0.0f;
 			ConvexRect dBoundary = boundary;
 			if (parentNode != null) {
-				
+
 				dBoundary.x += offset;
 				dBoundary.y += offset;
 				dBoundary.width -= offset*2;
 				dBoundary.height -= offset*2;
 			}
-				
-			//Draw child node
-			if (nodes != null) {
-
-				foreach (QuadtreeNode n in nodes) {
-
-					n.DebugDraw (z);
-				}
-			}
-
 
 			//Gizmos.color = debugDrawColor;
 			Handles.color = debugDrawColor;
@@ -322,18 +328,23 @@ namespace NP.NPQuadtree{
 		/**
 		 * Return number of element and overlap element under quadtree node include child node
 		 **/
-		private int TotalElements(bool includeOverlap = true){
+		private int TotalElements(bool includeOverlap = true, bool deepNode = true){
 				
 			int numElement= elements.Count;
 
 			if (includeOverlap)
 				numElement += overlapElements.Count; 
 
-			if (nodes == null)
-				return numElement;
+			//check child nodes
+			if (deepNode) {
 
-			foreach (QuadtreeNode n in nodes)
-				numElement += n.TotalElements ();
+				if (nodes == null)
+					return numElement;
+
+				foreach (QuadtreeNode n in nodes)
+					numElement += n.TotalElements ();
+			}
+
 
 			return numElement;
 		}
@@ -386,6 +397,7 @@ namespace NP.NPQuadtree{
 		 **/
 		public void UpdateQuadtree(){
 
+			//perform add elements
 			if (elementsNextFrame != null && elementsNextFrame.Count > 0) {
 
 				foreach (IQuadtreeAgent element in elementsNextFrame) {
@@ -395,10 +407,22 @@ namespace NP.NPQuadtree{
 
 				elementsNextFrame.Clear ();
 			}
+
+			//orgnize tree
+			//ReOrganize();
+
+			if (organizeTree) {
+
+				ReOrganize ();
+
+				organizeTree = false;
+			}
+
 		}
 
 		/**
 		 * Add new element to quadtree at next frame
+		 * This will start from root quadtree node
 		 **/
 		public void AddNextFrame(IQuadtreeAgent newElement){
 
@@ -406,7 +430,8 @@ namespace NP.NPQuadtree{
 		}
 			
 		/**
-		 * Add element to quadtree immediately
+		 * Add element to quadtree immediately under this
+		 * quadtree node or deeper child node
 		 **/
 		public bool Add(IQuadtreeAgent newElement){
 
@@ -421,14 +446,26 @@ namespace NP.NPQuadtree{
 			//notify element is about to add it to certain quadtree node
 			newElement.BeforeAddToQuadtreeNode (this);
 
+			Debug.Log("Level "+ Depth);
+
 			//If we have child node
 			if (nodes != null) {
 
 				int nodeIndex = IndexOfNode (newElement);
 
 				//can't find index of node
-				if (nodeIndex < 0)
+				if (nodeIndex < 0) {
+
+					#if DEBUG
+					Debug.LogError("No child node found"+" node boundary center "+this.boundary.center
+						+ "level "+Depth 
+						+" xMin " + boundary.xMin + " xMax "+boundary.xMax
+						+" yMin " + boundary.yMin + " yMax "+boundary.yMax
+						+" element center "+newElement.GetCenter()
+						+ " element last center "+ newElement.GetGameObject().GetComponent<QtAgent>().lastPosition);
+					#endif
 					return false;
+				}
 
 				//check if element's boundary fit in the 
 				//child node otherwise element is overlapping multiple node
@@ -440,8 +477,11 @@ namespace NP.NPQuadtree{
 					return nodes [nodeIndex].Add (newElement);
 
 				case CollisionResult.Overlap:
+					
 					//Element's boudnary overlap multiple child node, add it to this node
 					overlapElements.Add (newElement);
+					//notify element it has been added to this quadtree node
+					newElement.AfterAddToQuadtreeNode (this);
 					return true;
 
 				case CollisionResult.None:
@@ -455,9 +495,21 @@ namespace NP.NPQuadtree{
 
 				return false;
 			}
-				
 
-			//Add element to this node
+			/*
+			CollisionResult r = newElement.IntersectWithBoundary (this.boundary);
+			if (r == CollisionResult.Fit) {
+				//Add element to this node
+				elements.Add (newElement);
+			}
+			else {
+
+				if (parentNode != null)
+					parentNode.Add (newElement);
+				else
+					overlapElements.Add (newElement);
+			}
+			*/	
 			elements.Add (newElement);
 
 			//notify element it has been added to this quadtree node
@@ -469,14 +521,74 @@ namespace NP.NPQuadtree{
 				Split ();
 
 				//Distribute elements to corespond child node
-				foreach (IQuadtreeAgent e in elements)
-					Add (e);
+				foreach (IQuadtreeAgent e in elements) {
+				
+					//if elemnt out of node boundary
+					if (!Add (e)) {
+						#if DEBUG
+						Debug.LogWarning("Distribute element to child node fail, elemnt is out of node boundary." +
+							"We need to add from root");
+						#endif
+
+						//add element from root
+						rootQuadtree ().Add (e);
+					}
+						
+				}
 
 				//clear elements
 				elements.Clear();
 			}
 
 			return true;
+		}
+
+		/**
+		 * Remove element under this quadtree node
+		 **/
+		public bool Remove(IQuadtreeAgent element){
+
+			bool removed = false;
+
+			//If element in this node then remove it
+			if (elements.Contains (element) || overlapElements.Contains (element)) {
+			
+				elements.Remove (element);
+				overlapElements.Remove (element);
+
+				removed = true;
+			}
+
+			if (!removed) {
+
+				//search child
+				if(nodes != null){
+
+					int nodeIndex = IndexOfNode (element);
+
+					if (nodeIndex >= 0) {
+
+						CollisionResult r = element.IntersectWithBoundary (nodes [nodeIndex].boundary);
+
+						switch (r) {
+
+						case CollisionResult.Fit://can only fit in one child node
+							removed = nodes [nodeIndex].Remove (element);
+							break;
+						}
+					}
+				}
+			}
+
+			if (removed == true)
+				organizeTree = true;
+
+			#if DEBUG
+			if(!removed)
+				Debug.LogError("Can not remove element");
+			#endif
+
+			return removed;
 		}
 			
 
@@ -490,8 +602,10 @@ namespace NP.NPQuadtree{
 			#endif
 
 			#if DEBUG
-			if(nodes != null)
+			if(nodes != null){
 				Debug.LogWarning("Child node already exist before split");
+				return;
+			}
 			#endif
 
 			ConvexRect newBoundary;
@@ -521,6 +635,42 @@ namespace NP.NPQuadtree{
 			nodes[3].SetBoundary (newBoundary);
 
 
+		}
+
+		/**
+		 * Re-organize tree
+		 * 
+		 * Child nodes will be removed if 4 child node is leaf and contain no objects
+		 **/
+		void ReOrganize(){
+
+			if (nodes != null) {
+
+				bool cleanChildeNodes = true;
+
+				foreach (QuadtreeNode n in nodes) {
+
+					//tell child node to re-organize
+					n.ReOrganize ();
+
+					//if child has 4 child nodes
+					if (!n.IsLeaf) {
+
+						cleanChildeNodes = false;
+					}
+
+					//if child has elements
+					if (n.TotalElements (true, false) != 0) {
+
+						cleanChildeNodes = false;
+					}
+						
+				}
+
+
+				if (cleanChildeNodes)
+					nodes = null;
+			}
 		}
 
 
@@ -580,8 +730,7 @@ namespace NP.NPQuadtree{
 
 			return FindNode (element);
 		}
-
-		//TODO CHECK ELEMENT BOUNDARY
+			
 		/**
 		 * Delegate that used to compare agent need to be added for FindElements
 		 * 
@@ -765,6 +914,7 @@ namespace NP.NPQuadtree{
 
 			Debug.Log ("level: " + Depth
 				+ " is leaf: " + IsLeaf
+				+ " is root " + IsRoot
 				+ " elements: " + elements.Count
 				+ " overlap elements: " + overlapElements.Count 
 				+ " Center: " + boundary.center);

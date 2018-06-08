@@ -17,17 +17,25 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 	}
 
 	// Use this for initialization
-	void Start () {
+	public override void Start () {
 
-
+		base.AgentStart ();
 	}
 	
 	// Update is called once per frame
-	void Update () {
+	public override void Update () {
 
+		UpdateCircle ();
+		base.Update ();
+
+
+	}
+
+	void UpdateCircle(){
 		//update circle properties
 		circle.Radius = radius;
 		circle.Center = new Vector2 (transform.position.x, transform.position.y);
+		Debug.Log ("Circle center " + circle.Center);
 	}
 
 	public override CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary){
@@ -44,9 +52,7 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 
 		base.BeforeAddToQuadtreeNode (node);
 
-		//update circle properties
-		circle.Radius = radius;
-		circle.Center = new Vector2 (transform.position.x, transform.position.y);
+		UpdateCircle ();
 	}
 
 	public override void AfterAddToQuadtreeNode (QuadtreeNode node){
@@ -63,6 +69,11 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 	public override GameObject GetGameObject (){
 
 		return gameObject;
+	}
+
+	public override Vector2 Position2D ()
+	{
+		return circle.Center;
 	}
 
 	public virtual float Radius(){
