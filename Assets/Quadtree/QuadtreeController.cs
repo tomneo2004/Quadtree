@@ -20,8 +20,8 @@ namespace NP.NPQuadtree{
 		public int objToAdd = 0;
 		public float addInterval = 0.0f;
 
-		QtPointAgent pickAgent;
-		QtPointAgent placedAgent;
+		QtAgent pickAgent;
+		QtAgent placedAgent;
 
 		void Awake(){
 
@@ -54,7 +54,7 @@ namespace NP.NPQuadtree{
 				go.transform.position = pos;
 				go.name = "Agent " + i;
 
-				quadtree.Add (go.GetComponent<QtPointAgent> ());
+				quadtree.Add (go.GetComponent<QtAgent> ());
 
 				yield return new WaitForSeconds(addInterval);
 			}
@@ -67,6 +67,11 @@ namespace NP.NPQuadtree{
 
 		// Use this for initialization
 		void Start () {
+		}
+
+		void LateUpdate(){
+
+			quadtree.UpdateQuadtree ();
 		}
 
 		// Update is called once per frame
@@ -86,10 +91,9 @@ namespace NP.NPQuadtree{
 				GameObject go = Instantiate (obj);
 				go.transform.position = pos;
 
-				quadtree.Add (go.GetComponent<QtPointAgent> ());
+				quadtree.Add (go.GetComponent<QtAgent> ());
 
-				placedAgent = go.GetComponent<QtPointAgent>();
-
+				placedAgent = go.GetComponent<QtAgent>();
 
 			}
 
@@ -102,13 +106,13 @@ namespace NP.NPQuadtree{
 				go.transform.position = pos;
 				go.GetComponent<SpriteRenderer> ().color = Color.black;
 
-				quadtree.Add (go.GetComponent<QtPointAgent> ());
+				quadtree.AddNextFrame (go.GetComponent<QtAgent> ());
 
-				pickAgent = go.GetComponent<QtPointAgent>();
+				pickAgent = go.GetComponent<QtAgent>();
 
 
 			}
-
+				
 		}
 
 		void OnDrawGizmosSelected(){
@@ -119,14 +123,27 @@ namespace NP.NPQuadtree{
 			if (placedAgent != null) {
 				
 				QuadtreeNode n = quadtree.FindNode (placedAgent);
-				n.debugDrawColor = Color.red;
-				n.DebugDraw (transform.position.z);
+				if (n != null) {
+
+					n.debugDrawColor = Color.red;
+					n.DebugDraw (transform.position.z);
+				}
+
 			}
 
 			if (pickAgent != null) {
 
 				Gizmos.color = Color.yellow;
-				List<IQuadtreeAgent> foundAgent = quadtree.FindElements (pickAgent);
+				List<IQuadtreeAgent> foundAgent = quadtree.FindElements (pickAgent, false, delegate(IQuadtreeAgent agent) {
+
+					float dist = (agent.GetCenter() - pickAgent.GetCenter()).magnitude;
+
+					if(dist <= 10.0f)
+						return true;
+
+					return false;
+				});
+
 				foreach (IQuadtreeAgent a in foundAgent) {
 
 					Gizmos.DrawLine (new Vector3 (a.Position2D ().x, a.Position2D ().y, transform.position.z),

@@ -39,6 +39,27 @@ namespace NP.NPQuadtree{
 			return new Vector2 (transform.position.x, transform.position.y);
 
 		}
+
+		public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
+
+			base.BeforeAddToQuadtreeNode (node);
+		}
+
+		public override void AfterAddToQuadtreeNode (QuadtreeNode node){
+
+			base.AfterAddToQuadtreeNode (node);
+		}
+
+		public override Vector2 GetCenter (){
+
+			return new Vector2(transform.position.x, transform.position.y);
+		}
+
+
+		public override GameObject GetGameObject (){
+
+			return gameObject;
+		}
 	}
 }
 

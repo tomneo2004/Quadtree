@@ -17,7 +17,7 @@ namespace NP.NPQuadtree{
 		/**
 		 * Intersect with quadtree node's boundary
 		 * 
-		 * Return NodeBoundIntersection
+		 * Return CollisionResult
 		 * 
 		 * Param ConvexRect is in world space which is topleft corner as origin
 		 **/
@@ -27,6 +27,30 @@ namespace NP.NPQuadtree{
 		 * Return true if agent in query range
 		 **/
 		bool InQueryRange (IQuadtreeQuery query);
+
+		/**
+		 * Nofity when agent is about to be add to quadtree node
+		 * 
+		 * Param node is the quadtree node you call "Add" on
+		 **/
+		void BeforeAddToQuadtreeNode (QuadtreeNode node);
+
+		/**
+		 * Nofity when agent is added to quadtree node
+		 * 
+		 * Param node is the quadtree node this agent was added to
+		 **/
+		void AfterAddToQuadtreeNode (QuadtreeNode node);
+
+		/**
+		 * Return center point of agent
+		 **/
+		Vector2 GetCenter ();
+
+		/**
+		 * Return gameobject of agent
+		 **/
+		GameObject GetGameObject ();
 
 	}
 
@@ -143,6 +167,11 @@ namespace NP.NPQuadtree{
 		QuadtreeNode[] nodes;
 
 		/**
+		 * All elements in list should be add next frame not immediately
+		 **/
+		List<IQuadtreeAgent> elementsNextFrame;
+
+		/**
 		 * Boundary TopLeft is origin point
 		 **/
 		ConvexRect boundary;
@@ -189,6 +218,7 @@ namespace NP.NPQuadtree{
 			parentNode = parent;
 			elements = new List<IQuadtreeAgent> (elementCapacity);
 			overlapElements = new List<IQuadtreeAgent> ();
+			elementsNextFrame = new List<IQuadtreeAgent> ();
 
 			//set depth to 0 if this is root
 			if (parent == null)
@@ -350,9 +380,33 @@ namespace NP.NPQuadtree{
 
 			return q;
 		}
+
+		/**
+		 * Must be called every frame
+		 **/
+		public void UpdateQuadtree(){
+
+			if (elementsNextFrame != null && elementsNextFrame.Count > 0) {
+
+				foreach (IQuadtreeAgent element in elementsNextFrame) {
+				
+					Add (element);
+				}
+
+				elementsNextFrame.Clear ();
+			}
+		}
+
+		/**
+		 * Add new element to quadtree at next frame
+		 **/
+		public void AddNextFrame(IQuadtreeAgent newElement){
+
+			elementsNextFrame.Add (newElement);
+		}
 			
 		/**
-		 * Add element to quadtree
+		 * Add element to quadtree immediately
 		 **/
 		public bool Add(IQuadtreeAgent newElement){
 
@@ -363,6 +417,9 @@ namespace NP.NPQuadtree{
 				#endif
 				return false;
 			}
+
+			//notify element is about to add it to certain quadtree node
+			newElement.BeforeAddToQuadtreeNode (this);
 
 			//If we have child node
 			if (nodes != null) {
@@ -398,9 +455,13 @@ namespace NP.NPQuadtree{
 
 				return false;
 			}
+				
 
 			//Add element to this node
 			elements.Add (newElement);
+
+			//notify element it has been added to this quadtree node
+			newElement.AfterAddToQuadtreeNode (this);
 
 			//Split if needed
 			if (elements.Count > elementCapacity) {
@@ -489,7 +550,9 @@ namespace NP.NPQuadtree{
 
 				int nodeIndex = IndexOfNode (element);
 
-				if (nodeIndex >= 0)
+				//also check element boundary within node boundary
+				if (nodeIndex >= 0 
+					&& (element.IntersectWithBoundary(nodes[nodeIndex].boundary) == CollisionResult.Fit))
 					return nodes [nodeIndex].FindNode(element);
 			}
 
@@ -518,23 +581,47 @@ namespace NP.NPQuadtree{
 			return FindNode (element);
 		}
 
+		//TODO CHECK ELEMENT BOUNDARY
+		/**
+		 * Delegate that used to compare agent need to be added for FindElements
+		 * 
+		 * return return false to remove agent
+		 **/
+		public delegate bool OnCompare(IQuadtreeAgent agent);
 		/**
 		 * Find possible elements that might contact with given element
 		 * under this node
 		 * 
 		 * Param includeSelf is true given element might be in the result, default is false
 		 **/
-		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false){
-
-			//element position on within this node
-			if (!boundary.ContainPoint2D (element.Position2D ()))
-				return null;
+		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false, OnCompare compare = null){
 
 			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
 
-			//Search child node
+			//If this node's boundary is not contacted with element boundary
+			if (element.IntersectWithBoundary (boundary) == CollisionResult.None)
+				return result;
+
+			//Search child nodes
 			if (nodes != null) {
 
+				//for each child node
+				foreach (QuadtreeNode n in nodes) {
+
+					CollisionResult r = element.IntersectWithBoundary (n.boundary);
+
+					if (r == CollisionResult.Overlap) {//could have more than one child node
+
+						result.AddRange (n.FindElements (element, includeSelf, compare));
+
+					} else if (r == CollisionResult.Fit) {//can only fit into one child node
+
+						result.AddRange (n.FindElements (element, includeSelf, compare));
+						break;
+					}
+				}
+
+				/*
 				int nodeIndex = IndexOfNode (element);
 
 				if (nodeIndex >= 0) {
@@ -559,7 +646,7 @@ namespace NP.NPQuadtree{
 						}
 					}
 				}
-					
+				*/
 			}
 
 			result.AddRange (elements);
@@ -569,6 +656,22 @@ namespace NP.NPQuadtree{
 				result.Remove (element);
 			}
 
+			if (compare != null) {
+
+				foreach (IQuadtreeAgent e in elements) {
+
+					if (!compare (e))
+						result.Remove (e);
+				}
+
+				foreach (IQuadtreeAgent e in overlapElements) {
+
+					if (!compare (e))
+						result.Remove (e);
+				}
+			}
+
+				
 			return result;
 		}
 
