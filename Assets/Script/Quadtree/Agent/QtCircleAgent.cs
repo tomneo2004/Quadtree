@@ -48,11 +48,6 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 		return circle.CollideWithRect (rect);
 	}
 
-	public override CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary){
-
-		return circle.CollideWithRect (nodeBoundary);
-	}
-
 	public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
 
 		base.BeforeAddToQuadtreeNode (node);

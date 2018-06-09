@@ -38,10 +38,16 @@ namespace NP.NPQuadtree{
 			return CollisionResult.None;
 		}
 
+		/**
+		 * Subclass must override
+		 **/
 		protected abstract CollisionResult ContactWithRectangle (ConvexRect rect);
+
+		/**
+		 * Subclass must override
+		 **/
 		protected abstract CollisionResult ContactWIthCircle (ConvexCircle circle);
 
-		public abstract CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary);
 		public abstract void BeforeAddToQuadtreeNode (QuadtreeNode node);
 		public abstract void AfterAddToQuadtreeNode (QuadtreeNode node);
 		public abstract Vector2 GetCenter ();
@@ -74,7 +80,7 @@ namespace NP.NPQuadtree{
 
 				if (currentNode != null) {
 					
-					CollisionResult result = IntersectWithBoundary (currentNode.Boundary);
+					CollisionResult result = IntersectWithShape (currentNode.Boundary);
 
 					switch (result) {
 
@@ -88,7 +94,7 @@ namespace NP.NPQuadtree{
 								if (n.Boundary.ContainPoint2D (this.GetCenter ())) {
 								
 									//if agent fit in this child node
-									if (IntersectWithBoundary (n.Boundary) == CollisionResult.Fit) {
+									if (IntersectWithShape (n.Boundary) == CollisionResult.Fit) {
 									
 										currentNode.Remove (this);
 										currentNode.Add (this);
@@ -112,7 +118,7 @@ namespace NP.NPQuadtree{
 						QuadtreeNode pNode = currentNode.Parent;
 						while (pNode != null) {
 
-							if (IntersectWithBoundary (pNode.Boundary) == CollisionResult.Fit) {
+							if (IntersectWithShape (pNode.Boundary) == CollisionResult.Fit) {
 								break;
 							}
 
@@ -157,8 +163,6 @@ namespace NP.NPQuadtree{
 			
 		protected abstract override CollisionResult ContactWithRectangle (ConvexRect rect);
 		protected abstract override CollisionResult ContactWIthCircle (ConvexCircle circle);
-
-		public abstract override CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary);
 
 		public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
 		
