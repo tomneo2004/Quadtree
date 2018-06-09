@@ -770,6 +770,11 @@ namespace NP.NPQuadtree{
 		 **/
 		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false, OnCompare compare = null){
 
+			#if DEBUG
+			if(element.IntersectWithBoundary(this.boundary) == CollisionResult.Overlap)
+				Debug.LogWarning("Element overlap this node boundary result might not be corrent, recommend to use root node");
+			#endif
+
 			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
 
 			//If this node's boundary is not contacted with element boundary
@@ -784,43 +789,21 @@ namespace NP.NPQuadtree{
 
 					CollisionResult r = element.IntersectWithBoundary (n.boundary);
 
-					if (r == CollisionResult.Overlap) {//could have more than one child node
-
+					switch (r) {
+					case CollisionResult.Overlap://could have more than one child node covered
 						result.AddRange (n.FindElements (element, includeSelf, compare));
-
-					} else if (r == CollisionResult.Fit) {//can only fit into one child node
-
+						break;
+					case CollisionResult.Fit://can only fit into one child node
+						//search deep down this child node
 						result.AddRange (n.FindElements (element, includeSelf, compare));
 						break;
 					}
+
+					//no need to search other child node
+					if (r == CollisionResult.Fit)
+						break;
 				}
-
-				/*
-				int nodeIndex = IndexOfNode (element);
-
-				if (nodeIndex >= 0) {
-
-					QuadtreeNode node = nodes [nodeIndex];
-
-					CollisionResult r = element.IntersectWithBoundary (node.boundary);
-
-					//element boundary fit in this child boundary otherwise element overlap multiple nodes
-					if (r == CollisionResult.Fit) {
 					
-						result.AddRange (node.FindElements (element));
-
-					} else if(r == CollisionResult.Overlap) {
-
-						foreach (QuadtreeNode n in nodes) {
-						
-							//if element intersect with child node
-							if (element.IntersectWithBoundary (n.boundary) != CollisionResult.None)
-								result.AddRange (n.FindElements (element));
-								
-						}
-					}
-				}
-				*/
 			}
 
 			result.AddRange (elements);
