@@ -7,7 +7,48 @@ using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
-	public class QtAgent : MonoBehaviour, IQuadtreeAgent {
+	abstract public class BaseAgent : MonoBehaviour, IQuadtreeAgent{
+
+		public virtual CollisionResult IntersectWithShape (ConvexShape shape){
+
+			switch (shape.ShapeId) {
+			case ConvexShapeID.Rectangle:
+				ConvexRect rectShape = shape as ConvexRect;
+				if (rectShape == null) {
+					#if DEBUG
+					Debug.LogError("Unable to down cast ConvexShape to ConvexRect");
+					#endif
+				}
+				return ContactWithRectangle (rectShape);
+			case ConvexShapeID.Circle:
+				ConvexCircle circleShape = shape as ConvexCircle;
+				if (circleShape == null) {
+					#if DEBUG
+					Debug.LogError("Unable to down cast ConvexShape to ConvexCircle");
+					#endif
+				}
+				return ContactWIthCircle (circleShape);
+			case ConvexShapeID.Unknow:
+				#if DEBUG
+				Debug.LogError("Unknow convex shape");
+				#endif
+				break;
+			}
+
+			return CollisionResult.None;
+		}
+
+		protected abstract CollisionResult ContactWithRectangle (ConvexRect rect);
+		protected abstract CollisionResult ContactWIthCircle (ConvexCircle circle);
+
+		public abstract CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary);
+		public abstract void BeforeAddToQuadtreeNode (QuadtreeNode node);
+		public abstract void AfterAddToQuadtreeNode (QuadtreeNode node);
+		public abstract Vector2 GetCenter ();
+		public abstract GameObject GetGameObject ();
+	}
+
+	abstract public class QtAgent : BaseAgent {
 
 		public Vector2  lastPosition;
 		Vector2 newPosition;
@@ -114,37 +155,22 @@ namespace NP.NPQuadtree{
 			newPosition = new Vector2 (transform.position.x, transform.position.y);
 		}
 			
+		protected abstract override CollisionResult ContactWithRectangle (ConvexRect rect);
+		protected abstract override CollisionResult ContactWIthCircle (ConvexCircle circle);
 
-		public virtual Vector2 Position2D(){
+		public abstract override CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary);
 
-			return new Vector2 (transform.position.x, transform.position.y);
+		public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
+		
 		}
 
-		public virtual CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary){
-
-			return CollisionResult.None;
-		}
-
-		public virtual bool InQueryRange (IQuadtreeQuery query){
-
-			return false;
-		}
-
-		public virtual void BeforeAddToQuadtreeNode (QuadtreeNode node){
-		}
-
-		public virtual void AfterAddToQuadtreeNode (QuadtreeNode node){
+		public override void AfterAddToQuadtreeNode (QuadtreeNode node){
 
 			currentNode = node;
 		}
-			
-		public virtual Vector2 GetCenter (){
-
-			return new Vector2(transform.position.x, transform.position.y);
-		}
 
 
-		public virtual GameObject GetGameObject (){
+		public override GameObject GetGameObject (){
 
 			return gameObject;
 		}

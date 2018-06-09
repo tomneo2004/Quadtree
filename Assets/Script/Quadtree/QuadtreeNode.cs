@@ -9,10 +9,7 @@ namespace NP.NPQuadtree{
 
 	public interface IQuadtreeAgent{
 
-		/**
-		 * Return position in 2d in world space
-		 **/
-		Vector2 Position2D ();
+		CollisionResult IntersectWithShape (ConvexShape shape);
 
 		/**
 		 * Intersect with quadtree node's boundary
@@ -22,11 +19,6 @@ namespace NP.NPQuadtree{
 		 * Param ConvexRect is in world space which is topleft corner as origin
 		 **/
 		CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary);
-
-		/**
-		 * Return true if agent in query range
-		 **/
-		bool InQueryRange (IQuadtreeQuery query);
 
 		/**
 		 * Nofity when agent is about to be add to quadtree node
@@ -54,14 +46,6 @@ namespace NP.NPQuadtree{
 
 	}
 
-	public interface IQuadtreePointAgent : IQuadtreeAgent{
-
-		/**
-		 * Return point of this agent
-		 **/
-		Vector2 Point2D();
-	}
-
 	public interface IQuadtreeCircleAgent : IQuadtreeAgent{
 
 		/**
@@ -87,13 +71,6 @@ namespace NP.NPQuadtree{
 		 * Return true if element(agent) is in query range
 		 **/
 		bool IntersectWithElement (IQuadtreeAgent element);
-
-		/**
-		 * Return true if point type of agent is in range
-		 **/
-		bool PointAgentInRange (IQuadtreePointAgent pointAgent);
-
-		bool CircleAgentInRange (IQuadtreeCircleAgent circleAgent);
 	}
 
 	public class QuadtreeNode{
@@ -388,7 +365,7 @@ namespace NP.NPQuadtree{
 
 			for (int i = 0; i < nodes.Length; i++) {
 
-				if (nodes [i].boundary.ContainPoint2D (element.Position2D ()))
+				if (nodes [i].boundary.ContainPoint2D (element.GetCenter()))
 					return i;
 			}
 
@@ -709,7 +686,7 @@ namespace NP.NPQuadtree{
 			if (element == null)
 				return null;
 
-			if (!boundary.ContainPoint2D (element.Position2D ())) {
+			if (!boundary.ContainPoint2D (element.GetCenter())) {
 
 				//element never added to quadtree
 				#if DEBUG

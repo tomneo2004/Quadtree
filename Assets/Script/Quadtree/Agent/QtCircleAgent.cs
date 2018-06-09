@@ -38,14 +38,19 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 		Debug.Log ("Circle center " + circle.Center);
 	}
 
+	protected override CollisionResult ContactWIthCircle (ConvexCircle circle)
+	{
+		return circle.CollideWithCircle (circle);
+	}
+
+	protected override CollisionResult ContactWithRectangle (ConvexRect rect)
+	{
+		return circle.CollideWithRect (rect);
+	}
+
 	public override CollisionResult IntersectWithBoundary (ConvexRect nodeBoundary){
 
 		return circle.CollideWithRect (nodeBoundary);
-	}
-
-	public override bool InQueryRange (IQuadtreeQuery query)
-	{
-		return query.CircleAgentInRange (this);
 	}
 
 	public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
@@ -69,11 +74,6 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 	public override GameObject GetGameObject (){
 
 		return gameObject;
-	}
-
-	public override Vector2 Position2D ()
-	{
-		return circle.Center;
 	}
 
 	public virtual float Radius(){
