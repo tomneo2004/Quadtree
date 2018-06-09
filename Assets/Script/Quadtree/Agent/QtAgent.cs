@@ -9,6 +9,12 @@ namespace NP.NPQuadtree{
 
 	abstract public class BaseAgent : MonoBehaviour, IQuadtreeAgent{
 
+		public virtual void Start(){
+		}
+
+		public virtual void Update(){
+		}
+
 		public virtual CollisionResult IntersectWithShape (ConvexShape shape){
 
 			switch (shape.ShapeId) {
@@ -61,20 +67,25 @@ namespace NP.NPQuadtree{
 
 		QuadtreeNode currentNode;
 
-		// Use this for initialization
-		public virtual void Start () {
+		// subclass not allow to use this method 
+		sealed public override void Start () {
 
 			AgentStart ();
 		}
 
-		// Update is called once per frame
-		public virtual void Update () {
+		// subclass not allow to use this method 
+		sealed public override void Update () {
 
+			BeforeAgentUpdate ();
 			AgentUpdate ();
-			UpdateAgentNode ();
+			UpdateAgentInQuadtree ();
 		}
 
-		void UpdateAgentNode(){
+		/**
+		 * Method to update agent in quadtree especially
+		 * when agent moving around
+		 **/
+		void UpdateAgentInQuadtree(){
 
 			if (lastPosition != newPosition) {
 
@@ -106,14 +117,6 @@ namespace NP.NPQuadtree{
 						}
 						break;
 					case CollisionResult.Overlap:
-						/*
-						if (currentNode.Parent != null) {
-
-							currentNode.Remove (this);
-							currentNode.Parent.Add (this);
-						}
-						*/
-
 						//find parent until it contain this agent
 						QuadtreeNode pNode = currentNode.Parent;
 						while (pNode != null) {
@@ -137,12 +140,7 @@ namespace NP.NPQuadtree{
 						currentNode.rootQuadtree ().Add (this);//add from root quadtree
 						break;
 					}
-
-
-					/*
-					currentNode.Remove (this);
-					currentNode.rootQuadtree().Add (this);
-					*/
+						
 				}
 
 
@@ -150,15 +148,39 @@ namespace NP.NPQuadtree{
 			}
 		}
 
+		/**
+		 * Subclass can override to provide more functionality
+		 * 
+		 * Subclass muse call base
+		 * 
+		 * Replace MonoBehaviour's Start()
+		 **/
 		protected virtual void AgentStart(){
 
 			newPosition = new Vector2 (transform.position.x, transform.position.y);
 			lastPosition = newPosition;
 		}
 
+		/**
+		 * Subclass can override to provide more functionality
+		 * 
+		 * Subclass muse call base
+		 * 
+		 * Replace MonoBehaviour's Update()
+		 **/
 		protected virtual void AgentUpdate(){
 
 			newPosition = new Vector2 (transform.position.x, transform.position.y);
+		}
+
+		/**
+		 * Subclass can override to provide more functionality
+		 * 
+		 * Subclass muse call base
+		 * 
+		 * Do anything necessary before agent start to update
+		 **/
+		protected virtual void BeforeAgentUpdate (){
 		}
 			
 		protected abstract override CollisionResult ContactWithRectangle (ConvexRect rect);

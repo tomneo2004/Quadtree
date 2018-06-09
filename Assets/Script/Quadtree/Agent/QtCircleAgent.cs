@@ -16,22 +16,23 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 		circle = new ConvexCircle (new Vector2 (transform.position.x, transform.position.y), radius);
 	}
 
-	// Use this for initialization
-	public override void Start () {
-
+	protected override void AgentStart ()
+	{
 		base.AgentStart ();
 	}
 	
-	// Update is called once per frame
-	public override void Update () {
-
-		UpdateCircle ();
-		base.Update ();
-
-
+	protected override void AgentUpdate ()
+	{
+		base.AgentUpdate ();
 	}
 
-	void UpdateCircle(){
+	protected override void BeforeAgentUpdate ()
+	{
+		base.BeforeAgentUpdate ();
+		UpdateCircleShape ();
+	}
+
+	void UpdateCircleShape(){
 		//update circle properties
 		circle.Radius = radius;
 		circle.Center = new Vector2 (transform.position.x, transform.position.y);
@@ -52,7 +53,7 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 
 		base.BeforeAddToQuadtreeNode (node);
 
-		UpdateCircle ();
+		UpdateCircleShape ();
 	}
 
 	public override void AfterAddToQuadtreeNode (QuadtreeNode node){
