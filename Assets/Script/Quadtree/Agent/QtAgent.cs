@@ -15,6 +15,11 @@ namespace NP.NPQuadtree{
 		public virtual void Update(){
 		}
 
+		/**
+		 * Check if agent intersect with shape
+		 * 
+		 * Agent will automatically detect which shape is used to calculate collision
+		 **/
 		public virtual CollisionResult IntersectWithShape (ConvexShape shape){
 
 			switch (shape.ShapeId) {

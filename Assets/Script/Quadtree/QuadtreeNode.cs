@@ -7,9 +7,13 @@ using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
-	public interface IQuadtreeAgent{
+	public interface IQuadtreeBase{
 
 		CollisionResult IntersectWithShape (ConvexShape shape);
+	}
+
+	public interface IQuadtreeAgent : IQuadtreeBase{
+
 
 		/**
 		 * Nofity when agent is about to be add to quadtree node
@@ -45,7 +49,7 @@ namespace NP.NPQuadtree{
 		float Radius ();
 	}
 
-	public interface IQuadtreeQuery{
+	public interface IQuadtreeQuery : IQuadtreeBase{
 
 		/**
 		 * Intersect with quadtree's boundary
