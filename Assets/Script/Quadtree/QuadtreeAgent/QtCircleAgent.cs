@@ -32,6 +32,8 @@ namespace NP.NPQuadtree{
 		{
 			base.BeforeAgentUpdate ();
 			UpdateCircleShape ();
+
+
 		}
 
 		void UpdateCircleShape(){
@@ -74,13 +76,16 @@ namespace NP.NPQuadtree{
 		}
 
 
+		//test
 		public bool contact = false;
 		public void DebugDraw(){
 
 			if (circle == null)
 				return;
 
-			Gizmos.color = contact ? Color.green : Color.white;
+			GetComponent<SpriteRenderer>().color = contact ? Color.black : Color.white;
+			/*
+			Gizmos.color = contact ? Color.black : Color.white;
 			float cx = circle.Radius*Mathf.Cos(0);
 			float cy = circle.Radius*Mathf.Sin(0);
 			Vector2 cpos = circle.Center + new Vector2 (cx, cy);
@@ -94,6 +99,7 @@ namespace NP.NPQuadtree{
 				cpos = cnewPos;
 			}
 			Gizmos.DrawLine(cpos,clastPos);
+			*/
 		}
 	}
 }

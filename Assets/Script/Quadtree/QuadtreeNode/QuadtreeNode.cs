@@ -886,11 +886,11 @@ namespace NP.NPQuadtree{
 			//search child nodes
 			if (nodes != null) {
 
-				foreach (QuadtreeNode n in nodes) {
-
-					//downward search child
-					result.AddRange (n.QueryRange (query, false));
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+					result.AddRange ((er.Current as QuadtreeNode).QueryRange (query, false));
 				}
+					
 			}
 
 			//add this node's elements
@@ -899,10 +899,13 @@ namespace NP.NPQuadtree{
 
 			//Check if any of element contact query shape
 			List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
-			foreach (IQuadtreeAgent agent in result) {
 
-				if (agent.GetShape ().IntersectWithShape (query.GetShape ()) != CollisionResult.None) {
-					filterResult.Add (agent);
+			List<IQuadtreeAgent>.Enumerator resultEr = result.GetEnumerator();
+			while(resultEr.MoveNext()){
+
+				if(resultEr.Current.GetShape().IntersectWithShape(query.GetShape()) != CollisionResult.None){
+				
+					filterResult.Add(resultEr.Current);
 				}
 			}
 
