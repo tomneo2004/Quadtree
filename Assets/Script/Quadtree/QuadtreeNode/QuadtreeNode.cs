@@ -357,6 +357,32 @@ namespace NP.NPQuadtree{
 		}
 
 		/**
+		 * Get all elements under this quadtree node
+		 * 
+		 * Param overlap true will include elements that is overlapped
+		 * 
+		 * Param includeChild true will search deep down node's child
+		 **/
+		public List<IQuadtreeAgent> GetAllElements(bool overlap = true, bool includeChild = true){
+		
+			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
+
+			if (includeChild && (nodes != null)) {
+			
+				foreach (QuadtreeNode n in nodes) {
+
+					result.AddRange (n.GetAllElements (overlap, includeChild));
+				}
+			}
+
+			result.AddRange (elements);
+			if (overlap)
+				result.AddRange (overlapElements);
+
+			return result;
+		}
+
+		/**
 		 * Re-organize tree
 		 * 
 		 * Child nodes will be removed if 4 child node is leaf and contain no objects
@@ -746,10 +772,12 @@ namespace NP.NPQuadtree{
 		}
 
 
+
 		//TODO need to rework
 		/**
 		 * Query elements with in query shape
 		 * 
+		 * Return list of elements contact with query
 		 **/
 		public List<IQuadtreeAgent> QueryRange(IQuadtreeQuery query){
 
@@ -761,47 +789,70 @@ namespace NP.NPQuadtree{
 				return null;
 			}
 
-			//Return null if query is not intersect with quadtree boundary
-			if (query.GetShape().IntersectWithShape (boundary) == CollisionResult.None)
-				return null;
+			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
 
-			//Return null if no element
-			if (elements.Count <= 0)
-				return null;
+			CollisionResult r = query.GetShape ().IntersectWithShape (boundary);
 
-			//Check if any of element within query shape
-			List<IQuadtreeAgent> results = new List<IQuadtreeAgent>();
-			foreach (IQuadtreeAgent e in elements) {
+			switch (r) {
+			case CollisionResult.Fit://fit in node boundary
+				//go through child nodes
+				if (nodes != null) {
 
-				//Add element to result
-				if (query.GetShape().IntersectWithShape(e.GetShape()) == CollisionResult.Fit)
-					results.Add (e);
+					foreach (QuadtreeNode n in nodes) {
+
+						List<IQuadtreeAgent> retElements = n.QueryRange (query);
+						if (retElements != null)
+							result.AddRange (retElements);
+					}
+				}
+				break;
+			case CollisionResult.Overlap:
+				//find node that this query shape can fit in
+				QuadtreeNode pNode = parentNode;
+				while (pNode != null) {
+
+					CollisionResult pR = query.GetShape ().IntersectWithShape (pNode.boundary);
+
+					if (pR == CollisionResult.Fit) {
+
+						result.AddRange (pNode.GetAllElements ());
+						break;
+					}
+
+					pNode = pNode.parentNode;
+				}
+
+				//at root node and query is bigger then root node. Get all elements
+				#if DEBUG
+				Debug.LogWarning ("Query shpae is bigger than quadtree max boundary. Get all elements under root quadtree node");
+				#endif
+
+				result.AddRange (rootQuadtree ().GetAllElements ());
+				break;
+			case CollisionResult.None:
+				//Return null if query is not intersect with quadtree node boundary
+				return result;
 			}
-			foreach (IQuadtreeAgent overlapE in overlapElements) {
 
-				//Add element to result
-				if (query.GetShape().IntersectWithShape(overlapE.GetShape()) == CollisionResult.Overlap)
-					results.Add (overlapE);
+			//At this point we reach leaf
+			//Return null if no elements inside leaf
+			if (elements.Count <= 0 && overlapElements.Count <= 0) {
+				return result;
+			}else {
+				result.AddRange (elements);
+				result.AddRange (overlapElements);
 			}
 
-			//If no child leaf
-			if (nodes == null)
-				return results;
+			//Check if any of element contact query shape
+			List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
+			foreach (IQuadtreeAgent agent in result) {
 
-			//Go through each child node
-			List<IQuadtreeAgent> rElements;
-			foreach(QuadtreeNode n in nodes){
-
-				rElements = n.QueryRange (query);
-
-				if (rElements != null) {
-
-					foreach (IQuadtreeAgent elm in rElements)
-						results.Add (elm);
+				if (agent.GetShape ().IntersectWithShape (query.GetShape ()) != CollisionResult.None) {
+					filterResult.Add (agent);
 				}
 			}
 
-			return results;
+			return filterResult;
 		}
 
 		/**
