@@ -4,6 +4,7 @@ using UnityEngine;
 using NP.NPQuadtree;
 using NP.Convex.Collision;
 using NP.Convex.Shape;
+using UnityEngine.Profiling;
 
 namespace NP.NPQuadtree{
 
@@ -136,11 +137,24 @@ namespace NP.NPQuadtree{
 				go.transform.position = pos;
 				go.GetComponent<SpriteRenderer> ().color = Color.black;
 
-				quadtree.AddNextFrame (go.GetComponent<QtAgent> ());
+				quadtree.Add (go.GetComponent<QtAgent> ());
 
 				pickAgent = go.GetComponent<QtAgent>();
 
 
+				/*
+				//clear prvious agent contact status
+				foreach (IQuadtreeAgent a in queryAgents)
+					a.GetGameObject ().GetComponent<QtCircleAgent> ().contact = false;
+
+				List<IQuadtreeAgent> retriveAgents = pickAgent.CurrentNode.FindElements(pickAgent);
+				foreach (IQuadtreeAgent agent in retriveAgents) {
+
+					agent.GetGameObject ().GetComponent<QtCircleAgent> ().contact = true;
+
+					queryAgents.Add (agent);
+				}
+				*/
 			}
 
 			if (Input.GetButtonDown ("Jump")) {
@@ -168,7 +182,8 @@ namespace NP.NPQuadtree{
 				foreach (IQuadtreeAgent a in queryAgents)
 					a.GetGameObject ().GetComponent<QtCircleAgent> ().contact = false;
 
-				List<IQuadtreeAgent> retriveAgents = quadtree.QueryRangeFromRoot (circleQuery);
+
+				List<IQuadtreeAgent> retriveAgents = quadtree.QueryRange (circleQuery);
 				foreach (IQuadtreeAgent agent in retriveAgents) {
 
 					agent.GetGameObject ().GetComponent<QtCircleAgent> ().contact = true;
@@ -185,6 +200,7 @@ namespace NP.NPQuadtree{
 				//clear prvious agent contact status
 				foreach (IQuadtreeAgent a in queryAgents)
 					a.GetGameObject ().GetComponent<QtCircleAgent> ().contact = false;
+				
 			}
 				
 		}

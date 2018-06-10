@@ -687,73 +687,112 @@ namespace NP.NPQuadtree{
 		 **/
 		public delegate bool OnCompare(IQuadtreeAgent agent);
 		/**
-		 * Find possible elements that might contact with given element
-		 * under this node
+		 * Find elements that might contact with given element
+		 * under this node.
+		 * 
 		 * 
 		 * Param includeSelf is true given element might be in the result, default is false
+		 * 
+		 * Param upwardSearch true query will find the node that query shape complete fit in  in first
+		 * place then start search downward from that node. It is recommend to leave value as true for 
+		 * more accurate result.
+		 * 
+		 * Param compare a function you can provide and do addition check base on result it found
 		 **/
-		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false, OnCompare compare = null){
+		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool upwardSearch = true, bool includeSelf = false, OnCompare compare = null){
 
-			#if DEBUG
-			if(element.GetShape().IntersectWithShape(this.boundary) == CollisionResult.Overlap)
-				Debug.LogWarning("Element overlap this node boundary result might not be corrent, recommend to use root node");
-			#endif
+			if (element == null) {
 
-			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
+				#if DEBUG
+				Debug.LogError("Can't find elements, given element is null");
+				#endif
+				return null;
+			}
 
-			//If this node's boundary is not contacted with element boundary
-			if (element.GetShape().IntersectWithShape (boundary) == CollisionResult.None)
-				return result;
+			/**
+			 * Upward search from this node
+			 * 
+			 * This will go up until the node wihch element shape complete fit in
+			 **/
+			if (upwardSearch) {
 
-			//Search child nodes
-			if (nodes != null) {
+				//If this is the node element shape complete fit in
+				CollisionResult cResult = element.GetShape().IntersectWithShape(boundary);
 
-				//for each child node
-				foreach (QuadtreeNode n in nodes) {
+				//we found the node then start from this node
+				if (cResult == CollisionResult.Fit) {
 
-					CollisionResult r = element.GetShape().IntersectWithShape (n.boundary);
+					//downward search from parent if there is parent node
+					//the reason from parent node is that parent node's overlap element
+					//might be contact this shape
+					if (parentNode != null) {
 
-					switch (r) {
-					case CollisionResult.Overlap://could have more than one child node covered
-						result.AddRange (n.FindElements (element, includeSelf, compare));
-						break;
-					case CollisionResult.Fit://can only fit into one child node
-						//search deep down this child node
-						result.AddRange (n.FindElements (element, includeSelf, compare));
-						break;
+						//from parent node we start downward search
+						return parentNode.FindElements (element, false, includeSelf, compare);
 					}
 
-					//no need to search other child node
-					if (r == CollisionResult.Fit)
-						break;
+				} else {//continue search upward
+
+					//If there is a parent node otherwsie this is root node and start from
+					//here downward search
+					if (parentNode != null) {
+
+						//Continue finding upward until the node element shape can totally fit in
+						return parentNode.FindElements (element, true, includeSelf, compare);
+					}
 				}
 
 			}
 
+			/**
+			 * Downward search from this node
+			 * 
+			 * Downward search only search elements in child node include this node
+			 **/
+
+			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
+
+			CollisionResult r = element.GetShape ().IntersectWithShape (boundary);
+
+			//if not contact with element shape 
+			if (r == CollisionResult.None)
+				return result;
+
+			//search child nodes
+			if (nodes != null) {
+
+				foreach (QuadtreeNode n in nodes) {
+
+					//downward search child
+					result.AddRange (n.FindElements (element, false, includeSelf, compare));
+				}
+			}
+
+			//add this node's elements
 			result.AddRange (elements);
 			result.AddRange (overlapElements);
+
 
 			if (!includeSelf) {
 				result.Remove (element);
 			}
 
 			if (compare != null) {
+				
+				List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
 
-				foreach (IQuadtreeAgent e in elements) {
+				foreach (IQuadtreeAgent e in result) {
 
-					if (!compare (e))
-						result.Remove (e);
+					if (compare (e))
+						filterResult.Add (e);
+						
 				}
 
-				foreach (IQuadtreeAgent e in overlapElements) {
-
-					if (!compare (e))
-						result.Remove (e);
-				}
+				return filterResult;
 			}
-
-
+				
 			return result;
+
 		}
 
 		/**
@@ -773,13 +812,18 @@ namespace NP.NPQuadtree{
 
 
 
-		//TODO need to rework
 		/**
-		 * Query elements with in query shape
+		 * Query elements within or contact with query shape
 		 * 
-		 * Return list of elements contact with query
+		 * You can create your own query with any kind of convex shape
+		 * 
+		 * Return list of elements contact with or within query shape
+		 * 
+		 * Param upwardSearch true query will find the node that query shape complete fit in  in first
+		 * place then start search downward from that node. It is recommend to leave value as true for 
+		 * more accurate result. 
 		 **/
-		public List<IQuadtreeAgent> QueryRange(IQuadtreeQuery query){
+		public List<IQuadtreeAgent> QueryRange(IQuadtreeQuery query, bool upwardSearch = true){
 
 			if (query == null) {
 
@@ -789,59 +833,68 @@ namespace NP.NPQuadtree{
 				return null;
 			}
 
+			/**
+			 * Upward search from this node
+			 * 
+			 * This will go up until the node wihch query shape complete fit in
+			 **/
+			if (upwardSearch) {
+
+				//If this is the node query shape complete fit in
+				CollisionResult cResult = query.GetShape().IntersectWithShape(boundary);
+
+				//we found the node then start query from this node
+				if (cResult == CollisionResult.Fit) {
+
+					//downward search from parent if there is parent node
+					//the reason from parent node is that parent node's overlap element
+					//might be contact query shape
+					if (parentNode != null) {
+
+						//from parent node we start downward search
+						return parentNode.QueryRange (query, false);
+					}
+						
+				} else {//continue search upward
+
+					//If there is a parent node otherwsie this is root node and start from
+					//here downward search
+					if (parentNode != null) {
+
+						//Continue finding upward until the node query shape can totally fit in
+						return parentNode.QueryRange (query, true);
+					}
+				}
+
+			}
+
+			/**
+			 * Downward search from this node
+			 * 
+			 * Downward search only search elements in child node include this node
+			 **/
+
 			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
 
 			CollisionResult r = query.GetShape ().IntersectWithShape (boundary);
 
-			switch (r) {
-			case CollisionResult.Fit://fit in node boundary
-				//go through child nodes
-				if (nodes != null) {
-
-					foreach (QuadtreeNode n in nodes) {
-
-						List<IQuadtreeAgent> retElements = n.QueryRange (query);
-						if (retElements != null)
-							result.AddRange (retElements);
-					}
-				}
-				break;
-			case CollisionResult.Overlap:
-				//find node that this query shape can fit in
-				QuadtreeNode pNode = parentNode;
-				while (pNode != null) {
-
-					CollisionResult pR = query.GetShape ().IntersectWithShape (pNode.boundary);
-
-					if (pR == CollisionResult.Fit) {
-
-						result.AddRange (pNode.GetAllElements ());
-						break;
-					}
-
-					pNode = pNode.parentNode;
-				}
-
-				//at root node and query is bigger then root node. Get all elements
-				#if DEBUG
-				Debug.LogWarning ("Query shpae is bigger than quadtree max boundary. Get all elements under root quadtree node");
-				#endif
-
-				result.AddRange (rootQuadtree ().GetAllElements ());
-				break;
-			case CollisionResult.None:
-				//Return null if query is not intersect with quadtree node boundary
+			//if not contact with query shape which is not in range
+			if (r == CollisionResult.None)
 				return result;
+
+			//search child nodes
+			if (nodes != null) {
+
+				foreach (QuadtreeNode n in nodes) {
+
+					//downward search child
+					result.AddRange (n.QueryRange (query, false));
+				}
 			}
 
-			//At this point we reach leaf
-			//Return null if no elements inside leaf
-			if (elements.Count <= 0 && overlapElements.Count <= 0) {
-				return result;
-			}else {
-				result.AddRange (elements);
-				result.AddRange (overlapElements);
-			}
+			//add this node's elements
+			result.AddRange (elements);
+			result.AddRange (overlapElements);
 
 			//Check if any of element contact query shape
 			List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
@@ -922,6 +975,9 @@ namespace NP.NPQuadtree{
 
 
 		}
+		/**
+		 * Log all node's information
+		 **/
 		public void LevelDesc(){
 
 			Debug.Log ("level: " + Depth

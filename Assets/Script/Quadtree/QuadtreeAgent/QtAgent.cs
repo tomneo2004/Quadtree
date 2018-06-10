@@ -28,6 +28,7 @@ namespace NP.NPQuadtree{
 		Vector2 newPosition;
 
 		QuadtreeNode currentNode;
+		public QuadtreeNode CurrentNode{ get{ return currentNode;}}
 
 		// subclass not allow to use this method 
 		sealed public override void Start () {
