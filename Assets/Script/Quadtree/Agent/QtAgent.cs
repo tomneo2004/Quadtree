@@ -158,10 +158,7 @@ namespace NP.NPQuadtree{
 		}
 
 
-		public override GameObject GetGameObject (){
-
-			return gameObject;
-		}
+		public abstract override GameObject GetGameObject ();
 	}
 }
 
