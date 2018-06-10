@@ -4,6 +4,7 @@ using UnityEngine;
 using NP.NPQuadtree;
 using NP.Convex.Collision;
 using NP.Convex.Shape;
+using UnityEngine.Profiling;
 
 namespace NP.NPQuadtree{
 
@@ -23,6 +24,11 @@ namespace NP.NPQuadtree{
 		QtAgent pickAgent;
 		QtAgent placedAgent;
 
+		public float queryRadius = 0.2f;
+		QtCircleQuery circleQuery;
+		bool drawQuery = false;
+		List<IQuadtreeAgent> queryAgents = new List<IQuadtreeAgent>();
+
 		void Awake(){
 
 			quadtreeSize = new Vector2(Camera.main.orthographicSize-1.0f, Camera.main.orthographicSize-1.0f);
@@ -41,6 +47,8 @@ namespace NP.NPQuadtree{
 		}
 
 		IEnumerator AutoAddObject(){
+
+			Debug.Log ("Adding... "+quadtree.TotalElementCount);
 
 			for (int i = 0; i < objToAdd; i++) {
 
@@ -65,6 +73,24 @@ namespace NP.NPQuadtree{
 			quadtree.LevelDesc ();
 		}
 
+		IEnumerator RemoveAgents(QtAgent[] agents){
+
+			Debug.Log ("Removing... "+quadtree.TotalElementCount);
+
+			foreach (QtAgent agent in agents) {
+
+				quadtree.Remove (agent);
+				GameObject.Destroy (agent.GetGameObject ());
+
+				yield return new WaitForSeconds (addInterval);
+			}
+
+			Debug.Log ("Finish remove "+quadtree.TotalElementCount);
+
+
+			quadtree.LevelDesc ();
+		}
+
 		// Use this for initialization
 		void Start () {
 		}
@@ -72,6 +98,8 @@ namespace NP.NPQuadtree{
 		void LateUpdate(){
 
 			quadtree.UpdateQuadtree ();
+
+			//quadtree.LevelDesc ();
 		}
 
 		// Update is called once per frame
@@ -79,21 +107,24 @@ namespace NP.NPQuadtree{
 
 			if (Input.GetButtonDown("Fire1")) {
 
-				if (placedAgent != null) {
-
-					QuadtreeNode n = quadtree.FindNode (placedAgent);
-					n.debugDrawColor = Color.white;
-				}
-
 				Vector3 pos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
 				pos.z = transform.position.z;
 
 				GameObject go = Instantiate (obj);
 				go.transform.position = pos;
+				go.transform.rotation = Quaternion.identity;
 
 				quadtree.Add (go.GetComponent<QtAgent> ());
 
 				placedAgent = go.GetComponent<QtAgent>();
+
+				if (go.GetComponent<Rigidbody2D> () != null) {
+
+					int cornerIndex = Random.Range (0, quadtree.Boundary.AllCorners.Length);
+					Vector2 corner = quadtree.Boundary.AllCorners [cornerIndex];
+					Vector2 dir = (corner - placedAgent.GetCenter ()).normalized * 3.0f;
+					go.GetComponent<Rigidbody2D> ().AddForce (dir);
+				}
 
 			}
 
@@ -106,27 +137,100 @@ namespace NP.NPQuadtree{
 				go.transform.position = pos;
 				go.GetComponent<SpriteRenderer> ().color = Color.black;
 
-				quadtree.AddNextFrame (go.GetComponent<QtAgent> ());
+				quadtree.Add (go.GetComponent<QtAgent> ());
 
 				pickAgent = go.GetComponent<QtAgent>();
 
 
+				/*
+				//clear prvious agent contact status
+				foreach (IQuadtreeAgent a in queryAgents)
+					a.GetGameObject ().GetComponent<QtCircleAgent> ().contact = false;
+
+				List<IQuadtreeAgent> retriveAgents = pickAgent.CurrentNode.FindElements(pickAgent);
+				foreach (IQuadtreeAgent agent in retriveAgents) {
+
+					agent.GetGameObject ().GetComponent<QtCircleAgent> ().contact = true;
+
+					queryAgents.Add (agent);
+				}
+				*/
+			}
+
+			if (Input.GetButtonDown ("Jump")) {
+
+				QtAgent[] agents = GameObject.FindObjectsOfType<QtAgent> ();
+
+				StartCoroutine (RemoveAgents (agents));
+
+			}
+
+			if (Input.GetButton ("Submit")) {
+			
+				Vector3 mPos = Camera.main.ScreenToWorldPoint (Input.mousePosition);
+				Vector2 pos = new Vector2 (mPos.x, mPos.y);
+
+				if (circleQuery == null) {
+
+					circleQuery = new QtCircleQuery (pos, queryRadius);
+				}
+
+				((ConvexCircle)circleQuery.GetShape ()).Center = pos;
+				((ConvexCircle)circleQuery.GetShape ()).Radius = queryRadius;
+
+				//clear prvious agent contact status
+				foreach (IQuadtreeAgent a in queryAgents)
+					a.GetGameObject ().GetComponent<QtCircleAgent> ().contact = false;
+
+
+				List<IQuadtreeAgent> retriveAgents = quadtree.QueryRange (circleQuery);
+				foreach (IQuadtreeAgent agent in retriveAgents) {
+
+					agent.GetGameObject ().GetComponent<QtCircleAgent> ().contact = true;
+
+					queryAgents.Add (agent);
+				}
+
+
+				drawQuery = true;
+			} else {
+
+				drawQuery = false;
+
+				//clear prvious agent contact status
+				foreach (IQuadtreeAgent a in queryAgents)
+					a.GetGameObject ().GetComponent<QtCircleAgent> ().contact = false;
+				
 			}
 				
 		}
 
-		void OnDrawGizmosSelected(){
+		void OnDrawGizmos(){
+
 
 			if (quadtree != null)
 				quadtree.DebugDraw (transform.position.z);
+			
 
+			foreach (QtCircleAgent agent in GameObject.FindObjectsOfType<QtCircleAgent>()) {
+
+				agent.DebugDraw ();
+			}
+
+
+			if (drawQuery) {
+
+				circleQuery.DrawQuery ();
+
+			}
+			/*
 			if (placedAgent != null) {
 				
 				QuadtreeNode n = quadtree.FindNode (placedAgent);
 				if (n != null) {
 
 					n.debugDrawColor = Color.red;
-					n.DebugDraw (transform.position.z);
+					n.DebugDraw (transform.position.z, false);
 				}
 
 			}
@@ -150,6 +254,7 @@ namespace NP.NPQuadtree{
 						new Vector3 (pickAgent.Position2D ().x, pickAgent.Position2D ().y, transform.position.z));
 				}
 			}
+			*/
 				
 		}
 			
