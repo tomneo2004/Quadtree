@@ -449,8 +449,9 @@ MonoBehaviour:
   capacity: 3
   quadtreeSize: {x: 50, y: 50}
   obj: {fileID: 1593004005502172, guid: 585daf1a083ba9546b202176e0dbc9dc, type: 2}
-  objToAdd: 0
-  addInterval: 0.01
+  objToAdd: 500
+  addInterval: 0
+  queryRadius: 9
 --- !u!4 &906898602
 Transform:
   m_ObjectHideFlags: 0
