@@ -38,7 +38,6 @@ namespace NP.NPQuadtree{
 			//update circle properties
 			circle.Radius = radius;
 			circle.Center = new Vector2 (transform.position.x, transform.position.y);
-			Debug.Log ("Circle center " + circle.Center);
 		}
 
 		public override ConvexShape GetShape ()

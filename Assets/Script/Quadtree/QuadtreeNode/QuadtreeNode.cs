@@ -270,10 +270,11 @@ namespace NP.NPQuadtree{
 		 **/
 		private void Split(){
 
+			/*
 			#if DEBUG
 			Debug.Log("Split quadtree");
 			#endif
-
+			*/
 			#if DEBUG
 			if(nodes != null){
 				Debug.LogWarning("Child node already exist before split");
@@ -492,7 +493,7 @@ namespace NP.NPQuadtree{
 			//notify element is about to add it to certain quadtree node
 			newElement.BeforeAddToQuadtreeNode (this);
 
-			Debug.Log("Level "+ Depth);
+			//Debug.Log("Level "+ Depth);
 
 			//If we have child node
 			if (nodes != null) {
