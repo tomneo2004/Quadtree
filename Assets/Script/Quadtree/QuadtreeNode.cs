@@ -7,13 +7,9 @@ using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
-	public interface IQuadtreeBase{
+	public interface IQuadtreeAgent{
 
-		CollisionResult IntersectWithShape (ConvexShape shape);
-	}
-
-	public interface IQuadtreeAgent : IQuadtreeBase{
-
+		ConvexShape GetShape ();
 
 		/**
 		 * Nofity when agent is about to be add to quadtree node
@@ -49,7 +45,7 @@ namespace NP.NPQuadtree{
 		float Radius ();
 	}
 
-	public interface IQuadtreeQuery : IQuadtreeBase{
+	public interface IQuadtreeQuery{
 
 		/**
 		 * Intersect with quadtree's boundary
@@ -466,7 +462,7 @@ namespace NP.NPQuadtree{
 
 				//check if element's boundary fit in the 
 				//child node otherwise element is overlapping multiple node
-				CollisionResult iResult = newElement.IntersectWithShape(nodes[nodeIndex].boundary);
+				CollisionResult iResult = newElement.GetShape().IntersectWithShape(nodes[nodeIndex].boundary);
 
 				switch (iResult) {
 				case CollisionResult.Fit:
@@ -551,7 +547,7 @@ namespace NP.NPQuadtree{
 
 					if (nodeIndex >= 0) {
 
-						CollisionResult r = element.IntersectWithShape (nodes [nodeIndex].boundary);
+						CollisionResult r = element.GetShape().IntersectWithShape (nodes [nodeIndex].boundary);
 
 						switch (r) {
 
@@ -685,7 +681,7 @@ namespace NP.NPQuadtree{
 
 				//also check element boundary within node boundary
 				if (nodeIndex >= 0 
-					&& (element.IntersectWithShape(nodes[nodeIndex].boundary) == CollisionResult.Fit))
+					&& (element.GetShape().IntersectWithShape(nodes[nodeIndex].boundary) == CollisionResult.Fit))
 					return nodes [nodeIndex].FindNode(element);
 			}
 
@@ -729,14 +725,14 @@ namespace NP.NPQuadtree{
 		public List<IQuadtreeAgent> FindElements(IQuadtreeAgent element, bool includeSelf = false, OnCompare compare = null){
 
 			#if DEBUG
-			if(element.IntersectWithShape(this.boundary) == CollisionResult.Overlap)
+			if(element.GetShape().IntersectWithShape(this.boundary) == CollisionResult.Overlap)
 				Debug.LogWarning("Element overlap this node boundary result might not be corrent, recommend to use root node");
 			#endif
 
 			List<IQuadtreeAgent> result = new List<IQuadtreeAgent> ();
 
 			//If this node's boundary is not contacted with element boundary
-			if (element.IntersectWithShape (boundary) == CollisionResult.None)
+			if (element.GetShape().IntersectWithShape (boundary) == CollisionResult.None)
 				return result;
 
 			//Search child nodes
@@ -745,7 +741,7 @@ namespace NP.NPQuadtree{
 				//for each child node
 				foreach (QuadtreeNode n in nodes) {
 
-					CollisionResult r = element.IntersectWithShape (n.boundary);
+					CollisionResult r = element.GetShape().IntersectWithShape (n.boundary);
 
 					switch (r) {
 					case CollisionResult.Overlap://could have more than one child node covered

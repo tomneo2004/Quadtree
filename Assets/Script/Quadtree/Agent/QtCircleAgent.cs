@@ -39,14 +39,9 @@ public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 		Debug.Log ("Circle center " + circle.Center);
 	}
 
-	protected override CollisionResult ContactWIthCircle (ConvexCircle circle)
+	public override ConvexShape GetShape ()
 	{
-		return circle.CollideWithCircle (circle);
-	}
-
-	protected override CollisionResult ContactWithRectangle (ConvexRect rect)
-	{
-		return circle.CollideWithRect (rect);
+		return circle;
 	}
 
 	public override void BeforeAddToQuadtreeNode (QuadtreeNode node){

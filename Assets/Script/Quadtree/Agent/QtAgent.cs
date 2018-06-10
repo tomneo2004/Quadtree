@@ -15,50 +15,7 @@ namespace NP.NPQuadtree{
 		public virtual void Update(){
 		}
 
-		/**
-		 * Check if agent intersect with shape
-		 * 
-		 * Agent will automatically detect which shape is used to calculate collision
-		 **/
-		public virtual CollisionResult IntersectWithShape (ConvexShape shape){
-
-			switch (shape.ShapeId) {
-			case ConvexShapeID.Rectangle:
-				ConvexRect rectShape = shape as ConvexRect;
-				if (rectShape == null) {
-					#if DEBUG
-					Debug.LogError("Unable to down cast ConvexShape to ConvexRect");
-					#endif
-				}
-				return ContactWithRectangle (rectShape);
-			case ConvexShapeID.Circle:
-				ConvexCircle circleShape = shape as ConvexCircle;
-				if (circleShape == null) {
-					#if DEBUG
-					Debug.LogError("Unable to down cast ConvexShape to ConvexCircle");
-					#endif
-				}
-				return ContactWIthCircle (circleShape);
-			case ConvexShapeID.Unknow:
-				#if DEBUG
-				Debug.LogError("Unknow convex shape");
-				#endif
-				break;
-			}
-
-			return CollisionResult.None;
-		}
-
-		/**
-		 * Subclass must override
-		 **/
-		protected abstract CollisionResult ContactWithRectangle (ConvexRect rect);
-
-		/**
-		 * Subclass must override
-		 **/
-		protected abstract CollisionResult ContactWIthCircle (ConvexCircle circle);
-
+		public abstract ConvexShape GetShape ();
 		public abstract void BeforeAddToQuadtreeNode (QuadtreeNode node);
 		public abstract void AfterAddToQuadtreeNode (QuadtreeNode node);
 		public abstract Vector2 GetCenter ();
@@ -95,8 +52,9 @@ namespace NP.NPQuadtree{
 			if (lastPosition != newPosition) {
 
 				if (currentNode != null) {
-					
-					CollisionResult result = IntersectWithShape (currentNode.Boundary);
+
+					//check collision between agent and node boundary
+					CollisionResult result = this.GetShape().IntersectWithShape (currentNode.Boundary);
 
 					switch (result) {
 
@@ -110,7 +68,7 @@ namespace NP.NPQuadtree{
 								if (n.Boundary.ContainPoint2D (this.GetCenter ())) {
 								
 									//if agent fit in this child node
-									if (IntersectWithShape (n.Boundary) == CollisionResult.Fit) {
+									if (this.GetShape().IntersectWithShape (n.Boundary) == CollisionResult.Fit) {
 									
 										currentNode.Remove (this);
 										currentNode.Add (this);
@@ -126,7 +84,7 @@ namespace NP.NPQuadtree{
 						QuadtreeNode pNode = currentNode.Parent;
 						while (pNode != null) {
 
-							if (IntersectWithShape (pNode.Boundary) == CollisionResult.Fit) {
+							if (this.GetShape().IntersectWithShape (pNode.Boundary) == CollisionResult.Fit) {
 								break;
 							}
 
@@ -187,9 +145,8 @@ namespace NP.NPQuadtree{
 		 **/
 		protected virtual void BeforeAgentUpdate (){
 		}
-			
-		protected abstract override CollisionResult ContactWithRectangle (ConvexRect rect);
-		protected abstract override CollisionResult ContactWIthCircle (ConvexCircle circle);
+
+		public abstract override ConvexShape GetShape ();
 
 		public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
 		
