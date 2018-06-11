@@ -324,8 +324,15 @@ namespace NP.NPQuadtree{
 				if (nodes == null)
 					return numElement;
 
-				foreach (QuadtreeNode n in nodes)
-					numElement += n.TotalElements ();
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+				
+					numElement += (er as QuadtreeNode).TotalElements ();
+				}
+
+				//not optmized
+//				foreach (QuadtreeNode n in nodes)
+//					numElement += n.TotalElements ();
 			}
 
 
@@ -370,10 +377,17 @@ namespace NP.NPQuadtree{
 
 			if (includeChild && (nodes != null)) {
 			
-				foreach (QuadtreeNode n in nodes) {
-
-					result.AddRange (n.GetAllElements (overlap, includeChild));
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+				
+					result.AddRange ((er as QuadtreeNode).GetAllElements (overlap, includeChild));
 				}
+
+				//not optmized
+//				foreach (QuadtreeNode n in nodes) {
+//
+//					result.AddRange (n.GetAllElements (overlap, includeChild));
+//				}
 			}
 
 			result.AddRange (elements);
@@ -394,24 +408,46 @@ namespace NP.NPQuadtree{
 
 				bool cleanChildeNodes = true;
 
-				foreach (QuadtreeNode n in nodes) {
-
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+				
 					//tell child node to re-organize
-					n.ReOrganize ();
+					(er as QuadtreeNode).ReOrganize ();
 
 					//if child has 4 child nodes
-					if (!n.IsLeaf) {
+					if (!(er as QuadtreeNode).IsLeaf) {
 
 						cleanChildeNodes = false;
 					}
 
 					//if child has elements
-					if (n.TotalElements (true, false) != 0) {
+					if ((er as QuadtreeNode).TotalElements (true, false) != 0) {
 
 						cleanChildeNodes = false;
 					}
 
+
 				}
+
+				//not optmized
+//				foreach (QuadtreeNode n in nodes) {
+//
+//					//tell child node to re-organize
+//					n.ReOrganize ();
+//
+//					//if child has 4 child nodes
+//					if (!n.IsLeaf) {
+//
+//						cleanChildeNodes = false;
+//					}
+//
+//					//if child has elements
+//					if (n.TotalElements (true, false) != 0) {
+//
+//						cleanChildeNodes = false;
+//					}
+//
+//				}
 
 
 				if (cleanChildeNodes)
@@ -447,10 +483,17 @@ namespace NP.NPQuadtree{
 			//perform add elements
 			if (elementsNextFrame != null && elementsNextFrame.Count > 0) {
 
-				foreach (IQuadtreeAgent element in elementsNextFrame) {
+				List<IQuadtreeAgent>.Enumerator er = elementsNextFrame.GetEnumerator ();
+				while (er.MoveNext ()) {
 				
-					Add (element);
+					Add (er.Current);
 				}
+
+				//not optmized
+//				foreach (IQuadtreeAgent element in elementsNextFrame) {
+//				
+//					Add (element);
+//				}
 
 				elementsNextFrame.Clear ();
 			}
@@ -554,20 +597,36 @@ namespace NP.NPQuadtree{
 				Split ();
 
 				//Distribute elements to corespond child node
-				foreach (IQuadtreeAgent e in elements) {
+				List<IQuadtreeAgent>.Enumerator er = elements.GetEnumerator();
+				while (er.MoveNext ()) {
 				
 					//if elemnt out of node boundary
-					if (!Add (e)) {
+					if (!Add (er.Current)) {
 						#if DEBUG
 						Debug.LogWarning("Distribute element to child node fail, elemnt is out of node boundary." +
 							"We need to add from root");
 						#endif
 
 						//add element from root
-						rootQuadtree ().Add (e);
+						rootQuadtree ().Add (er.Current);
 					}
-						
 				}
+
+				//not optmized
+//				foreach (IQuadtreeAgent e in elements) {
+//				
+//					//if elemnt out of node boundary
+//					if (!Add (e)) {
+//						#if DEBUG
+//						Debug.LogWarning("Distribute element to child node fail, elemnt is out of node boundary." +
+//							"We need to add from root");
+//						#endif
+//
+//						//add element from root
+//						rootQuadtree ().Add (e);
+//					}
+//						
+//				}
 
 				//clear elements
 				elements.Clear();
@@ -760,14 +819,22 @@ namespace NP.NPQuadtree{
 				return result;
 
 			//search child nodes
-			if (nodes != null) {
-
-				foreach (QuadtreeNode n in nodes) {
-
-					//downward search child
-					result.AddRange (n.FindElements (element, false, includeSelf, compare));
-				}
+			IEnumerator er = nodes.GetEnumerator();
+			while (er.MoveNext ()) {
+			
+				//downward search child
+				result.AddRange ((er.Current as QuadtreeNode).FindElements (element, false, includeSelf, compare));
 			}
+
+			//not optmized
+//			if (nodes != null) {
+//
+//				foreach (QuadtreeNode n in nodes) {
+//
+//					//downward search child
+//					result.AddRange (n.FindElements (element, false, includeSelf, compare));
+//				}
+//			}
 
 			//add this node's elements
 			result.AddRange (elements);
@@ -782,12 +849,20 @@ namespace NP.NPQuadtree{
 				
 				List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
 
-				foreach (IQuadtreeAgent e in result) {
-
-					if (compare (e))
-						filterResult.Add (e);
-						
+				List<IQuadtreeAgent>.Enumerator qer = result.GetEnumerator ();
+				while (qer.MoveNext ()) {
+				
+					if (compare (qer.Current))
+						filterResult.Add (qer.Current);
 				}
+
+				//not optmized
+//				foreach (IQuadtreeAgent e in result) {
+//
+//					if (compare (e))
+//						filterResult.Add (e);
+//						
+//				}
 
 				return filterResult;
 			}
