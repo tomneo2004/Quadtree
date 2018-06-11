@@ -7,6 +7,9 @@ using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
+	/**
+	 * Common interface
+	 **/
 	public interface IQuadtreeBase{
 
 		/**
@@ -15,14 +18,16 @@ namespace NP.NPQuadtree{
 		ConvexShape GetShape ();
 	}
 
+	/**
+	 * Interface for all kind of quadtree agent
+	 **/
 	public interface IQuadtreeAgent : IQuadtreeBase{
 
 		/**
 		 * Nofity when agent is about to be add to quadtree node
 		 * 
-		 * Param node is the quadtree node you call "Add" on
 		 **/
-		void BeforeAddToQuadtreeNode (QuadtreeNode node);
+		void BeforeAddToQuadtreeNode ();
 
 		/**
 		 * Nofity when agent is added to quadtree node
@@ -36,21 +41,11 @@ namespace NP.NPQuadtree{
 		 **/
 		Vector2 GetCenter ();
 
-		/**
-		 * Return gameobject of agent
-		 **/
-		GameObject GetGameObject ();
-
 	}
-
-	public interface IQuadtreeCircleAgent : IQuadtreeAgent{
-
-		/**
-		 * Return radius of circle of this agent
-		 **/
-		float Radius ();
-	}
-
+		
+	/**
+	 * Interface for all kind of query
+	 **/
 	public interface IQuadtreeQuery : IQuadtreeBase{
 
 	}
@@ -327,7 +322,7 @@ namespace NP.NPQuadtree{
 				IEnumerator er = nodes.GetEnumerator ();
 				while (er.MoveNext ()) {
 				
-					numElement += (er as QuadtreeNode).TotalElements ();
+					numElement += (er.Current as QuadtreeNode).TotalElements ();
 				}
 
 				//not optmized
@@ -351,10 +346,16 @@ namespace NP.NPQuadtree{
 			if ((element == null) || (nodes == null))
 				return -1;
 
-			for (int i = 0; i < nodes.Length; i++) {
+			IEnumerator er = nodes.GetEnumerator ();
+			int nodeIndex = 0;
+			while (er.MoveNext ()) {
+			
+				if ((er.Current as QuadtreeNode).boundary.ContainPoint2D (element.GetCenter ())) {
 
-				if (nodes [i].boundary.ContainPoint2D (element.GetCenter()))
-					return i;
+					return nodeIndex;
+				}
+
+				nodeIndex++;
 			}
 
 			#if DEBUG
@@ -380,7 +381,7 @@ namespace NP.NPQuadtree{
 				IEnumerator er = nodes.GetEnumerator ();
 				while (er.MoveNext ()) {
 				
-					result.AddRange ((er as QuadtreeNode).GetAllElements (overlap, includeChild));
+					result.AddRange ((er.Current as QuadtreeNode).GetAllElements (overlap, includeChild));
 				}
 
 				//not optmized
@@ -412,16 +413,16 @@ namespace NP.NPQuadtree{
 				while (er.MoveNext ()) {
 				
 					//tell child node to re-organize
-					(er as QuadtreeNode).ReOrganize ();
+					(er.Current as QuadtreeNode).ReOrganize ();
 
 					//if child has 4 child nodes
-					if (!(er as QuadtreeNode).IsLeaf) {
+					if (!(er.Current as QuadtreeNode).IsLeaf) {
 
 						cleanChildeNodes = false;
 					}
 
 					//if child has elements
-					if ((er as QuadtreeNode).TotalElements (true, false) != 0) {
+					if ((er.Current as QuadtreeNode).TotalElements (true, false) != 0) {
 
 						cleanChildeNodes = false;
 					}
@@ -534,7 +535,7 @@ namespace NP.NPQuadtree{
 			}
 
 			//notify element is about to add it to certain quadtree node
-			newElement.BeforeAddToQuadtreeNode (this);
+			newElement.BeforeAddToQuadtreeNode ();
 
 			//Debug.Log("Level "+ Depth);
 
@@ -552,7 +553,7 @@ namespace NP.NPQuadtree{
 						+" xMin " + boundary.xMin + " xMax "+boundary.xMax
 						+" yMin " + boundary.yMin + " yMax "+boundary.yMax
 						+" element center "+newElement.GetCenter()
-						+ " element last center "+ newElement.GetGameObject().GetComponent<QtAgent>().lastPosition);
+						+ " element last center "+ (newElement as QtAgent).lastPosition);
 					#endif
 					return false;
 				}
@@ -1033,23 +1034,23 @@ namespace NP.NPQuadtree{
 			}
 
 			//Gizmos.color = debugDrawColor;
-			Handles.color = debugDrawColor;
-			Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
+			Gizmos.color = debugDrawColor;
+			//Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
 
 			//LT->RT
-			Handles.DrawLine (new Vector3 (dBoundary.x, dBoundary.y, z),
+			Gizmos.DrawLine (new Vector3 (dBoundary.x, dBoundary.y, z),
 				new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y, z));
 
 			//RT->RB
-			Handles.DrawLine (new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y, z),
+			Gizmos.DrawLine (new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y, z),
 				new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y - dBoundary.height, z));
 
 			//RB->LB
-			Handles.DrawLine (new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y - dBoundary.height, z),
+			Gizmos.DrawLine (new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y - dBoundary.height, z),
 				new Vector3 (dBoundary.x, dBoundary.y - dBoundary.height, z));
 
 			//LB->LT
-			Handles.DrawLine (new Vector3 (dBoundary.x, dBoundary.y - dBoundary.height, z),
+			Gizmos.DrawLine (new Vector3 (dBoundary.x, dBoundary.y - dBoundary.height, z),
 				new Vector3 (dBoundary.x, dBoundary.y, z));
 
 

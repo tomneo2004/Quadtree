@@ -7,15 +7,25 @@ using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
+	public interface IQuadtreeCircleAgent : IQuadtreeAgent{
+
+		/**
+		 * Return radius of circle of this agent
+		 **/
+		float Radius ();
+	}
+
 	public class QtCircleAgent : QtAgent, IQuadtreeCircleAgent {
 
 		public float radius = 0.2f;
 
 		ConvexCircle circle;
 
-		void Awake(){
+		protected override void AgentAwake ()
+		{
+			base.AgentAwake ();
 
-			circle = new ConvexCircle (new Vector2 (transform.position.x, transform.position.y), radius);
+			circle = new ConvexCircle (new Vector2 (agentTransform.position.x, agentTransform.position.y), radius);
 		}
 
 		protected override void AgentStart ()
@@ -39,7 +49,7 @@ namespace NP.NPQuadtree{
 		void UpdateCircleShape(){
 			//update circle properties
 			circle.Radius = radius;
-			circle.Center = new Vector2 (transform.position.x, transform.position.y);
+			circle.Center = new Vector2 (agentTransform.position.x, agentTransform.position.y);
 		}
 
 		public override ConvexShape GetShape ()
@@ -47,9 +57,9 @@ namespace NP.NPQuadtree{
 			return circle;
 		}
 
-		public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
+		public override void BeforeAddToQuadtreeNode (){
 
-			base.BeforeAddToQuadtreeNode (node);
+			base.BeforeAddToQuadtreeNode ();
 
 			UpdateCircleShape ();
 		}
@@ -63,12 +73,7 @@ namespace NP.NPQuadtree{
 
 			return circle.Center;
 		}
-
-
-		public override GameObject GetGameObject (){
-
-			return gameObject;
-		}
+			
 
 		public virtual float Radius(){
 
@@ -84,7 +89,7 @@ namespace NP.NPQuadtree{
 				return;
 
 			GetComponent<SpriteRenderer>().color = contact ? Color.black : Color.white;
-			/*
+
 			Gizmos.color = contact ? Color.black : Color.white;
 			float cx = circle.Radius*Mathf.Cos(0);
 			float cy = circle.Radius*Mathf.Sin(0);
@@ -99,7 +104,7 @@ namespace NP.NPQuadtree{
 				cpos = cnewPos;
 			}
 			Gizmos.DrawLine(cpos,clastPos);
-			*/
+
 		}
 	}
 }
