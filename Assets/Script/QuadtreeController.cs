@@ -64,9 +64,9 @@ namespace NP.NPQuadtree{
 				Vector3 pos;
 				GameObject go = Instantiate (obj);
 				QtCircleAgent agnet = go.GetComponent<QtCircleAgent> ();
-
-				pos = new Vector3 (Random.Range (boundary.x+agnet.Radius(), boundary.x + boundary.width - agnet.Radius()), 
-					Random.Range (boundary.y - agnet.Radius(), boundary.y - boundary.height + agnet.Radius()), 
+				Vector2 topLeftCorner = boundary.AllCorners [0];
+				pos = new Vector3 (Random.Range (topLeftCorner.x+3.0f+agnet.Radius(), topLeftCorner.x + boundary.Width -3.0f - agnet.Radius()), 
+					Random.Range (topLeftCorner.y -3.0f - agnet.Radius(), topLeftCorner.y - boundary.Height+3.0f + agnet.Radius()), 
 					transform.position.z);
 
 				go.transform.position = pos;
@@ -200,9 +200,11 @@ namespace NP.NPQuadtree{
 				((ConvexCircle)circleQuery.GetShape ()).Center = pos;
 				((ConvexCircle)circleQuery.GetShape ()).Radius = queryRadius;
 
-				((ConvexRect)rectQuery.GetShape ()).center = pos;
-				((ConvexRect)rectQuery.GetShape ()).widthFromCenter = rectQuerySize.x;
-				((ConvexRect)rectQuery.GetShape ()).heightFromCenter = rectQuerySize.y;
+				((ConvexRect)rectQuery.GetShape ()).Center = pos;
+				((ConvexRect)rectQuery.GetShape ()).Width = rectQuerySize.x;
+				((ConvexRect)rectQuery.GetShape ()).Height = rectQuerySize.y;
+				((ConvexRect)rectQuery.GetShape ()).Rotation = ((ConvexRect)rectQuery.GetShape ()).Rotation + Time.deltaTime * 80.0f;
+
 
 				//clear prvious agent contact status
 				List<IQuadtreeAgent>.Enumerator er = queryAgents.GetEnumerator();
@@ -214,8 +216,8 @@ namespace NP.NPQuadtree{
 
 
 				// quadtree query
-				er = quadtree.QueryRange (circleQuery).GetEnumerator();
-				//er = quadtree.QueryRange (rectQuery).GetEnumerator();
+				//er = quadtree.QueryRange (circleQuery).GetEnumerator();
+				er = quadtree.QueryRange (rectQuery).GetEnumerator();
 				while (er.MoveNext()) {
 
 					(er.Current as QtCircleAgent).contact = true;
@@ -272,8 +274,8 @@ namespace NP.NPQuadtree{
 				
 			if (drawQuery && drawQueryDebug) {
 
-				circleQuery.DrawQuery ();
-				//rectQuery.DrawQuery();
+				//circleQuery.DrawQuery ();
+				rectQuery.DrawQuery();
 			}
 
 

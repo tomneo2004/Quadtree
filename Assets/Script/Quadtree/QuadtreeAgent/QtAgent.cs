@@ -19,8 +19,7 @@ namespace NP.NPQuadtree{
 		}
 
 		public abstract ConvexShape GetShape ();
-		public abstract void BeforeAddToQuadtreeNode ();
-		public abstract void AfterAddToQuadtreeNode (QuadtreeNode node);
+		public abstract void AddToQuadtreeNode (QuadtreeNode node);
 		public abstract Vector2 GetCenter ();
 	}
 
@@ -212,11 +211,8 @@ namespace NP.NPQuadtree{
 
 		public abstract override ConvexShape GetShape ();
 
-		public override void BeforeAddToQuadtreeNode (){
-		
-		}
 
-		public override void AfterAddToQuadtreeNode (QuadtreeNode node){
+		public override void AddToQuadtreeNode (QuadtreeNode node){
 
 			//update node
 			currentNode = node;

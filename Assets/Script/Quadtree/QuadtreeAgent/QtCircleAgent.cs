@@ -57,16 +57,9 @@ namespace NP.NPQuadtree{
 			return circle;
 		}
 
-		public override void BeforeAddToQuadtreeNode (){
+		public override void AddToQuadtreeNode (QuadtreeNode node){
 
-			base.BeforeAddToQuadtreeNode ();
-
-			UpdateCircleShape ();
-		}
-
-		public override void AfterAddToQuadtreeNode (QuadtreeNode node){
-
-			base.AfterAddToQuadtreeNode (node);
+			base.AddToQuadtreeNode (node);
 		}
 
 		public override Vector2 GetCenter (){
