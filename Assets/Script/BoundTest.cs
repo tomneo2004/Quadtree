@@ -24,15 +24,15 @@ public class BoundTest : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-		center = rect.center;
+		center = rect.Center;
 		//rect.x = x;
 		//rect.y = y;
 		//rect.width = width;
 		//rect.height = height;
 
 		//rect.center = center;
-		rect.widthFromCenter = width;
-		rect.heightFromCenter = height;
+		rect.Width = width;
+		rect.Height = height;
 	}
 
 	void OnDrawGizmos(){
@@ -60,11 +60,11 @@ public class BoundTest : MonoBehaviour {
 		for (int i = 0; i < corners.Length; i++) {
 
 			Gizmos.DrawCube (new Vector3(corners[i].x, corners[i].y),
-				new Vector3(rect.width * scale, rect.height * scale));
+				new Vector3(rect.Width * scale, rect.Height * scale));
 		}
 
 		//draw center
 		Gizmos.color = Color.red;
-		Gizmos.DrawSphere (rect.center, rect.width*scale);
+		Gizmos.DrawSphere (rect.Center, rect.Width*scale);
 	}
 }

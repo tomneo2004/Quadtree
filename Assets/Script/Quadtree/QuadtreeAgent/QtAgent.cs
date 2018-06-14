@@ -9,6 +9,9 @@ namespace NP.NPQuadtree{
 
 	abstract public class BaseAgent : MonoBehaviour, IQuadtreeAgent{
 
+		public virtual void Awake(){
+		}
+
 		public virtual void Start(){
 		}
 
@@ -16,22 +19,74 @@ namespace NP.NPQuadtree{
 		}
 
 		public abstract ConvexShape GetShape ();
-		public abstract void BeforeAddToQuadtreeNode (QuadtreeNode node);
-		public abstract void AfterAddToQuadtreeNode (QuadtreeNode node);
+		public abstract void AddToQuadtreeNode (QuadtreeNode node);
 		public abstract Vector2 GetCenter ();
-		public abstract GameObject GetGameObject ();
 	}
 
 	abstract public class QtAgent : BaseAgent {
 
+		/**
+		 * Last position of agent
+		 **/
 		public Vector2  lastPosition;
+
+		/**
+		 * New position of agent
+		 * 
+		 * THis must be update every time agent position is changed
+		 **/
 		Vector2 newPosition;
 
+		/**
+		 * Current quadtree node this agnet is in
+		 **/
 		QuadtreeNode currentNode;
+
+		/**
+		 * Get quadtree node this agent is in
+		 **/
 		public QuadtreeNode CurrentNode{ get{ return currentNode;}}
+
+		/**
+		 * Reference to Transform
+		 **/
+		protected Transform agentTransform;
+
+		/**
+		 * Reference to Rigidbody2D
+		 **/
+		protected Rigidbody2D agentRigidbody2D;
+
+		/**
+		 * Get agent's Rigidbody2D if there is one otherwise return null
+		 **/
+		public Rigidbody2D agRigidbody2D{ get{ return agentRigidbody2D;}}
+
+		/**
+		 * Reference to GameObject
+		 **/
+		protected GameObject agentGameObject;
+
+		/**
+		 * Get agent's GameObject if there is one otherwise return null
+		 **/
+		public GameObject agGameObject{ get{ return agentGameObject;}}
+
+
+		sealed public override void Awake () {
+
+			agentTransform = this.transform;
+			agentRigidbody2D = GetComponent<Rigidbody2D> ();
+			agentGameObject = this.gameObject;
+
+			AgentAwake ();
+		}
 
 		// subclass not allow to use this method 
 		sealed public override void Start () {
+
+			newPosition = new Vector2 (agentTransform.position.x, agentTransform.position.y);
+			lastPosition = newPosition;
 
 			AgentStart ();
 		}
@@ -40,6 +95,10 @@ namespace NP.NPQuadtree{
 		sealed public override void Update () {
 
 			BeforeAgentUpdate ();
+
+			//update new position
+			newPosition = new Vector2 (agentTransform.position.x, agentTransform.position.y);
+
 			AgentUpdate ();
 			UpdateAgentInQuadtree ();
 		}
@@ -63,25 +122,22 @@ namespace NP.NPQuadtree{
 						if (!currentNode.IsLeaf) {//has child node
 
 							//for all child nodes
-							foreach (QuadtreeNode n in currentNode.AllNodes) {
+							IEnumerator er = currentNode.AllNodes.GetEnumerator ();
+							while (er.MoveNext ()) {
 
-								//see if agent in this child node
-								if (n.Boundary.ContainPoint2D (this.GetCenter ())) {
-								
-									//if agent fit in this child node
-									if (this.GetShape().IntersectWithShape (n.Boundary) == CollisionResult.Fit) {
-									
-										currentNode.Remove (this);
-										currentNode.Add (this);
-										break;
-									}
+								//if agent fit in this child
+								if (this.GetShape ().IntersectWithShape ((er.Current as QuadtreeNode).Boundary) == CollisionResult.Fit) {
+
+									//move to child node
+									currentNode.Remove (this);
+									(er.Current as QuadtreeNode).Add (this);
 								}
 							}
 
 						}
 						break;
 					case CollisionResult.Overlap:
-						//find parent until it contain this agent
+						//find parent until agent complete fit in
 						QuadtreeNode pNode = currentNode.Parent;
 						while (pNode != null) {
 
@@ -93,6 +149,7 @@ namespace NP.NPQuadtree{
 						}
 
 						currentNode.Remove (this);
+
 						if (pNode == null)//root node
 							currentNode.rootQuadtree ().Add (this);
 						else
@@ -106,10 +163,19 @@ namespace NP.NPQuadtree{
 					}
 						
 				}
-
-
+					
 				lastPosition = newPosition;
 			}
+		}
+
+		/**
+		 * Subclass can override to provide more functionality
+		 * 
+		 * Subclass muse call base
+		 * 
+		 * Replace MonoBehaviour's Awake()
+		 **/
+		protected virtual void AgentAwake(){
 		}
 
 		/**
@@ -120,9 +186,6 @@ namespace NP.NPQuadtree{
 		 * Replace MonoBehaviour's Start()
 		 **/
 		protected virtual void AgentStart(){
-
-			newPosition = new Vector2 (transform.position.x, transform.position.y);
-			lastPosition = newPosition;
 		}
 
 		/**
@@ -134,7 +197,6 @@ namespace NP.NPQuadtree{
 		 **/
 		protected virtual void AgentUpdate(){
 
-			newPosition = new Vector2 (transform.position.x, transform.position.y);
 		}
 
 		/**
@@ -149,17 +211,14 @@ namespace NP.NPQuadtree{
 
 		public abstract override ConvexShape GetShape ();
 
-		public override void BeforeAddToQuadtreeNode (QuadtreeNode node){
-		
-		}
 
-		public override void AfterAddToQuadtreeNode (QuadtreeNode node){
+		public override void AddToQuadtreeNode (QuadtreeNode node){
 
+			//update node
 			currentNode = node;
 		}
 
-
-		public abstract override GameObject GetGameObject ();
+		public abstract override Vector2 GetCenter ();
 	}
 }
 

@@ -34,7 +34,6 @@ namespace NP.Convex.Collision{
 	public interface IConvexCollision{
 
 		CollisionResult IntersectWithShape (ConvexShape shape);
-		bool ContainPoint2D (Vector2 point);
 	}
 }
 
@@ -46,6 +45,7 @@ namespace NP.Convex.Shape{
 	public enum ConvexShapeID{
 		Rectangle,
 		Circle,
+		Point,
 		Unknow
 	}
 
@@ -86,7 +86,7 @@ namespace NP.Convex.Shape{
 		public virtual CollisionResult IntersectWithShape (ConvexShape shape){
 
 			switch (shape.ShapeId) {
-			case ConvexShapeID.Rectangle:
+			case ConvexShapeID.Rectangle://Rectangle
 				ConvexRect rectShape = shape as ConvexRect;
 				if (rectShape == null) {
 					#if DEBUG
@@ -94,15 +94,26 @@ namespace NP.Convex.Shape{
 					#endif
 				}
 				return ContactWithRectangle (rectShape);
-			case ConvexShapeID.Circle:
+
+			case ConvexShapeID.Circle://Circle
 				ConvexCircle circleShape = shape as ConvexCircle;
 				if (circleShape == null) {
 					#if DEBUG
 					Debug.LogError("Unable to down cast ConvexShape to ConvexCircle");
 					#endif
 				}
-				return ContactWIthCircle (circleShape);
-			case ConvexShapeID.Unknow:
+				return ContactWithCircle (circleShape);
+
+			case ConvexShapeID.Point://Point
+				ConvexPoint pointShape = shape as ConvexPoint;
+				if (pointShape == null) {
+					#if DEBUG
+					Debug.LogError ("Unable to down cast ConvexShape to ConvextPoint");
+					#endif
+				}
+				return ContactWithPoint (pointShape);
+
+			case ConvexShapeID.Unknow://Unknow
 				#if DEBUG
 				Debug.LogError("Unknow convex shape");
 				#endif
@@ -111,12 +122,10 @@ namespace NP.Convex.Shape{
 
 			return CollisionResult.None;
 		}
-			
-		public abstract bool ContainPoint2D (Vector2 point);
 		#endregion
 
 		#region For subclass override
-		//public abstract ConvexShape GetShape ();
+		public abstract CollisionResult ContainPoint2D (Vector2 point);
 
 		/**
 		 * Subclass must override
@@ -126,7 +135,12 @@ namespace NP.Convex.Shape{
 		/**
 		 * Subclass must override
 		 **/
-		protected abstract CollisionResult ContactWIthCircle (ConvexCircle otherCircle);
+		protected abstract CollisionResult ContactWithCircle (ConvexCircle otherCircle);
+
+		/**
+		 * Subclass must override
+		 **/
+		protected abstract CollisionResult ContactWithPoint (ConvexPoint otherPoint);
 		#endregion
 	}
 
@@ -140,68 +154,19 @@ namespace NP.Convex.Shape{
 		#region Properties
 		float _x;
 
-		/**
-		 * Get x
-		 * 
-		 * Set x will move rectangle on x axis and remain
-		 * same width. X of center will be changed
-		 **/
-		public float x {
-
-			get {
-				return _x;
-			}
-
-			set {
-				_x = value;
-				CalculateCenter ();
-			}
-		}
-
 		float _y;
-
-		/**
-		 * Get y
-		 * 
-		 * Set y will move rectangle on y axis and remain
-		 * same height. Y of center will be changed 
-		 **/
-		public float y {
-
-			get {
-				return _y;
-			}
-
-			set {
-				_y = value;
-				CalculateCenter ();
-			}
-		}
 
 		float _width;
 
 		/**
-		 * Get width
-		 * 
-		 * Set width will cause bound's width extend from x while
-		 * x remain same position. Center's x will be changed
-		 **/
-		public float width {
-
-			get {
-				return _width;
-			}
-
-			set {
-				_width = value;
-				CalculateCenter ();
-			}
-		}
-
-		/**
 		 * Set width for rectangle extend from center 
 		 **/
-		public float widthFromCenter{
+		public float Width{
+
+			get{
+
+				return _width;
+			}
 
 			set{
 
@@ -214,27 +179,14 @@ namespace NP.Convex.Shape{
 		float _height;
 
 		/**
-		 * Get height
-		 * 
-		 * Set width will cause bound's height extend from y while
-		 * x remain same position. Center's y will be changed
-		 **/
-		public float height {
-
-			get {
-				return _height;
-			}
-
-			set {
-				_height = value;
-				CalculateCenter ();
-			}
-		}
-
-		/**
 		 * Set height for rectangle extend from center 
 		 **/
-		public float heightFromCenter{
+		public float Height{
+
+			get{
+			
+				return _height;
+			}
 
 			set{
 
@@ -252,7 +204,7 @@ namespace NP.Convex.Shape{
 		 * Set center will move rectangle on both x and y axis and alter x and y position of topleft corner
 		 * while width and height remain the same size.
 		 **/
-		public Vector2 center{
+		public Vector2 Center{
 
 			get{ 
 
@@ -268,10 +220,25 @@ namespace NP.Convex.Shape{
 			}
 		}
 
-		public Vector2 size{ get{ return new Vector2 (_width, _height);}}
+		/**
+		 * Get size of rectangle
+		 **/
+		public Vector2 Size{ get{ return new Vector2 (_width, _height);}}
+
+		float _rotation = 0;
 
 		/**
-		 * Get 4 corners of bound in clockwise
+		 * Get and set rotation of rectangle
+		 **/
+		public float Rotation{
+
+			get{ return _rotation;}
+
+			set{ _rotation = value;}
+		}
+
+		/**
+		 * Get 4 corners of bound in clockwise start from topleft
 		 **/
 		public Vector2[] AllCorners{
 
@@ -279,34 +246,14 @@ namespace NP.Convex.Shape{
 
 				Vector2[] corners = new Vector2[4];
 
-				corners [0] = new Vector2 (_x, _y);
-				corners [1] = new Vector2 (_x + _width, _y);
-				corners [2] = new Vector2 (_x + _width, _y - _height);
-				corners [3] = new Vector2 (_x, _y - _height);
+				corners [0] = ApplyRotationToPoint (new Vector2 (_x, _y), _center, _rotation);
+				corners [1] = ApplyRotationToPoint(new Vector2 (_x + _width, _y), _center, _rotation);
+				corners [2] = ApplyRotationToPoint(new Vector2 (_x + _width, _y - _height), _center, _rotation);
+				corners [3] = ApplyRotationToPoint(new Vector2 (_x, _y - _height), _center, _rotation);
 
 				return corners;
 			}
 		}
-
-		/**
-		 * Get TopLeft corner position
-		 **/
-		public Vector2 TLCorner{ get{  return new Vector2 (_x, _y);}}
-
-		/**
-		 * Get TopRight corner position
-		 **/
-		public Vector2 TRCorner{ get{  return new Vector2 (_x + _width, _y);}}
-
-		/**
-		 * Get BottomRight corner position
-		 **/
-		public Vector2 BRCorner{ get{  return new Vector2 (_x + _width, _y - _height);}}
-
-		/**
-		 * Get BottomLeft corner position
-		 **/
-		public Vector2 BLCorner{ get{  return new Vector2 (_x, _y - _height);}}
 
 		/**
 		 * Return 4 corners' normal vector
@@ -344,7 +291,9 @@ namespace NP.Convex.Shape{
 
 			get{
 
-				return Mathf.Min (_x, _x + _width);
+
+				Vector2[] corners = AllCorners;
+				return Mathf.Min (corners [0].x, Mathf.Min (corners [1].x, Mathf.Min (corners [2].x, corners [3].x)));
 			}
 		}
 
@@ -352,7 +301,8 @@ namespace NP.Convex.Shape{
 
 			get{
 
-				return Mathf.Max (_x, _x + _width);
+				Vector2[] corners = AllCorners;
+				return Mathf.Max (corners [0].x, Mathf.Max (corners [1].x, Mathf.Max (corners [2].x, corners [3].x)));
 			}
 		}
 
@@ -360,7 +310,8 @@ namespace NP.Convex.Shape{
 
 			get{
 
-				return Mathf.Min (_y, _y - _height);
+				Vector2[] corners = AllCorners;
+				return Mathf.Min (corners [0].y, Mathf.Min (corners [1].y, Mathf.Min (corners [2].y, corners [3].y)));
 			}
 		}
 
@@ -368,23 +319,8 @@ namespace NP.Convex.Shape{
 
 			get{
 
-				return Mathf.Max (_y, _y - _height);
-			}
-		}
-
-		public Vector2 minCorner{
-
-			get{
-
-				return new Vector2 (xMin, yMin);
-			}
-		}
-
-		public Vector2 maxCorner{
-
-			get{
-
-				return new Vector2 (xMax, yMax);
+				Vector2[] corners = AllCorners;
+				return Mathf.Max (corners [0].y, Mathf.Max (corners [1].y, Mathf.Max (corners [2].y, corners [3].y)));
 			}
 		}
 		#endregion
@@ -407,24 +343,40 @@ namespace NP.Convex.Shape{
 			_y = y;
 			_width = Mathf.Abs(width);
 			_height = Mathf.Abs(height);
-			CalculateCenter ();
+			_rotation = 0;
+			_center = new Vector2 (_x + _width / 2.0f, _y - _height / 2.0f);
 		}
 
 		public ConvexRect(Vector2 center, Vector2 size){
 
 			_shapeId = ConvexShapeID.Rectangle;
 
+			_center = center;
+			_rotation = 0;
 			_x = center.x - size.x / 2.0f;
 			_y = center.y + size.y / 2.0f;
 			_width = Mathf.Abs(size.x);
 			_height = Mathf.Abs(size.y);
+
 		}
 		#endregion
 
 		#region Private methods
-		void CalculateCenter(){
+		/**
+		 * Apply a rotation to a point and rotate around from anchor point
+		 * 
+		 * Param angle in degree positive value will rotate counter-clockwise
+		 **/
+		Vector2 ApplyRotationToPoint(Vector2 point, Vector2 anchor, float angle){
 
-			_center = new Vector2 (_x + _width / 2.0f, _y - _height / 2.0f);
+			float sinR = Mathf.Sin(angle * Mathf.Deg2Rad);
+			float cosR = Mathf.Cos(angle * Mathf.Deg2Rad);
+
+
+			Vector2 direction = point - anchor;
+
+			return new Vector2(cosR * direction.x - sinR * direction.y + anchor.x,
+				sinR * direction.x + cosR * direction.y + anchor.y);
 		}
 		#endregion
 
@@ -445,9 +397,19 @@ namespace NP.Convex.Shape{
 		#endregion
 
 		#region override from ConvexShape class
+		public override CollisionResult ContainPoint2D (Vector2 point)
+		{
+			if (point.x >= xMin && point.x <= xMax
+				&& point.y >= yMin && point.y <= yMax)
+				return CollisionResult.Overlap;
+
+			return CollisionResult.None;
+		}
+
 		protected override CollisionResult ContactWithRectangle (ConvexRect otherRect)
 		{
 			bool collision = true;
+			bool inside = true;
 
 			//this rectangle's normal of 4 corner and use it as projection axis
 			Vector2[] rect1Normals = this.Normals;
@@ -455,23 +417,24 @@ namespace NP.Convex.Shape{
 			Vector2[] rect2AllCorners = otherRect.AllCorners;
 
 			//For each normals in this rectangle
-			for (int i = 0; i < rect1Normals.Length; i++) {
-
+			IEnumerator ie = rect1Normals.GetEnumerator ();
+			while (ie.MoveNext ()) {
+			
 				//Projecting all corners from rect1 to rect1's normal
-				float r1Dot1 = Vector2.Dot (rect1Normals [i], rect1AllCorners [0]);
-				float r1Dot2 = Vector2.Dot (rect1Normals [i], rect1AllCorners [1]);
-				float r1Dot3 = Vector2.Dot (rect1Normals [i], rect1AllCorners [2]);
-				float r1Dot4 = Vector2.Dot (rect1Normals [i], rect1AllCorners [3]);
+				float r1Dot1 = Vector2.Dot ((Vector2)ie.Current, rect1AllCorners [0]);
+				float r1Dot2 = Vector2.Dot ((Vector2)ie.Current, rect1AllCorners [1]);
+				float r1Dot3 = Vector2.Dot ((Vector2)ie.Current, rect1AllCorners [2]);
+				float r1Dot4 = Vector2.Dot ((Vector2)ie.Current, rect1AllCorners [3]);
 
 				//Find rect1 max and min projection
 				float r1PMin = Mathf.Min (r1Dot1, Mathf.Min (r1Dot2, Mathf.Min (r1Dot3, r1Dot4)));
 				float r1PMax = Mathf.Max (r1Dot1, Mathf.Max (r1Dot2, Mathf.Max (r1Dot3, r1Dot4)));
 
 				//Projecting all corners from rect2 to rect1's normal
-				float r2Dot1 = Vector2.Dot (rect1Normals [i], rect2AllCorners [0]);
-				float r2Dot2 = Vector2.Dot (rect1Normals [i], rect2AllCorners [1]);
-				float r2Dot3 = Vector2.Dot (rect1Normals [i], rect2AllCorners [2]);
-				float r2Dot4 = Vector2.Dot (rect1Normals [i], rect2AllCorners [3]);
+				float r2Dot1 = Vector2.Dot ((Vector2)ie.Current, rect2AllCorners [0]);
+				float r2Dot2 = Vector2.Dot ((Vector2)ie.Current, rect2AllCorners [1]);
+				float r2Dot3 = Vector2.Dot ((Vector2)ie.Current, rect2AllCorners [2]);
+				float r2Dot4 = Vector2.Dot ((Vector2)ie.Current, rect2AllCorners [3]);
 
 				//Find rect2 max and min projection
 				float r2PMin = Mathf.Min (r2Dot1, Mathf.Min (r2Dot2, Mathf.Min (r2Dot3, r2Dot4)));
@@ -482,26 +445,17 @@ namespace NP.Convex.Shape{
 				if (r2PMin > r1PMax || r2PMax < r1PMin) {
 
 					collision = false;
-
+					inside = false;
 					break;
+				}
+
+				if (r1PMin < r2PMin || r1PMax > r2PMax) {
+
+					inside = false;
 				}
 			}
 
-			//Check if this rectangle is inside another rectangle
 			if (collision == true) {
-
-				bool inside = true;
-
-				//4 corners of this rectangle
-				foreach (Vector2 corner in AllCorners) {
-
-					//if other rectangle not contain this corner
-					if (!otherRect.ContainPoint2D (corner)) {
-
-						inside = false;
-						break;
-					}
-				}
 
 				if (inside == true)
 					return CollisionResult.Fit;
@@ -513,7 +467,7 @@ namespace NP.Convex.Shape{
 			return CollisionResult.None;
 		}
 
-		protected override CollisionResult ContactWIthCircle (ConvexCircle otherCircle)
+		protected override CollisionResult ContactWithCircle (ConvexCircle otherCircle)
 		{
 			//We use circle collide rect to chcek
 			//reduce duplicate code because code is all most the same only
@@ -532,13 +486,14 @@ namespace NP.Convex.Shape{
 				 **/
 				Vector2[] corners = AllCorners;
 
-				for (int i = 0; i < corners.Length; i++) {
-
+				IEnumerator ie = corners.GetEnumerator ();
+				while (ie.MoveNext ()) {
+				
 					//projection axis from corner to circle center
-					Vector2 p = otherCircle.Center - corners [i];
+					Vector2 p = otherCircle.Center - (Vector2)ie.Current;
 
 					//corner projection
-					float cornerP = Vector2.Dot (p.normalized, corners [i]);
+					float cornerP = Vector2.Dot (p.normalized, (Vector2)ie.Current);
 
 					//circle center projection
 					float circleP = Vector2.Dot (p.normalized, otherCircle.Center);
@@ -562,23 +517,11 @@ namespace NP.Convex.Shape{
 
 			return result;
 		}
-		#endregion
 
-
-		#region IConvexCollisioin
-		/**
-		 * Return true if rectangle contain point
-		 **/
-
-		public override bool ContainPoint2D(Vector2 point){
-
-			if (point.x >= xMin && point.x <= xMax
-				&& point.y >= yMin && point.y <= yMax)
-				return true;
-
-			return false;
+		protected override CollisionResult ContactWithPoint (ConvexPoint otherPoint)
+		{
+			return ContainPoint2D (otherPoint.Center);
 		}
-
 		#endregion
 
 	}
@@ -589,7 +532,7 @@ namespace NP.Convex.Shape{
 	 * 
 	 * Implement IConvexCircleCollision interface
 	 **/
-	public class ConvexCircle :ConvexShape{
+	public class ConvexCircle : ConvexShape{
 		
 		#region Properties
 		Vector2 _center;
@@ -632,6 +575,15 @@ namespace NP.Convex.Shape{
 		#endregion
 
 		#region Shape collision calculation
+		public override CollisionResult ContainPoint2D (Vector2 point)
+		{
+
+			if ((point - _center).magnitude > _radius)
+				return CollisionResult.None;
+
+			return CollisionResult.Overlap;
+		}
+
 		protected override CollisionResult ContactWithRectangle (ConvexRect otherRect)
 		{
 			//All corners from rectangle
@@ -663,10 +615,10 @@ namespace NP.Convex.Shape{
 			//base on axis find min and max corner
 			float rMin = 0.0f;
 			float rMax = 0.0f;
-			for (int i = 0; i < corners.Length; i++) {
-
-				rMax = Mathf.Max (rMax, Vector2.Dot (p.normalized, corners [i]));
-				rMin = Mathf.Min (rMin, Vector2.Dot (p.normalized, corners [i]));
+			IEnumerator ie = corners.GetEnumerator ();
+			while(ie.MoveNext()){
+				rMax = Mathf.Max (rMax, Vector2.Dot (p.normalized, (Vector2)ie.Current));
+				rMin = Mathf.Min (rMin, Vector2.Dot (p.normalized, (Vector2)ie.Current));
 			}
 
 			//find circle center projection
@@ -697,20 +649,21 @@ namespace NP.Convex.Shape{
 				Vector2[] normals = otherRect.Normals;
 				float r1Dot1, r1Dot2, r1Dot3, r1Dot4, r1PMin, r1PMax;
 
-				for (int i = 0; i < normals.Length; i++) {
-
+				ie = normals.GetEnumerator ();
+				while (ie.MoveNext ()) {
+				
 					//4 corners projection
-					r1Dot1 = Vector2.Dot (normals [i], corners [0]);
-					r1Dot2 = Vector2.Dot (normals [i], corners [1]);
-					r1Dot3 = Vector2.Dot (normals [i], corners [2]);
-					r1Dot4 = Vector2.Dot (normals [i], corners [3]);
+					r1Dot1 = Vector2.Dot ((Vector2)ie.Current, corners [0]);
+					r1Dot2 = Vector2.Dot ((Vector2)ie.Current, corners [1]);
+					r1Dot3 = Vector2.Dot ((Vector2)ie.Current, corners [2]);
+					r1Dot4 = Vector2.Dot ((Vector2)ie.Current, corners [3]);
 
 					//corner min and max on this normal(projection axis)
 					r1PMin = Mathf.Min (r1Dot1, Mathf.Min (r1Dot2, Mathf.Min (r1Dot3, r1Dot4)));
 					r1PMax = Mathf.Max (r1Dot1, Mathf.Max (r1Dot2, Mathf.Max (r1Dot3, r1Dot4)));
 
 					//circle center projection on this normal(projection axis)
-					float circleP = Vector2.Dot (normals [i], _center);
+					float circleP = Vector2.Dot ((Vector2)ie.Current, _center);
 
 					//check if circle overlap rectangle
 					if ((circleP - _radius) > r1PMax || (circleP + _radius) < r1PMin) {
@@ -744,7 +697,7 @@ namespace NP.Convex.Shape{
 			return CollisionResult.None;
 		}
 
-		protected override CollisionResult ContactWIthCircle (ConvexCircle otherCircle)
+		protected override CollisionResult ContactWithCircle (ConvexCircle otherCircle)
 		{
 			bool collision = true;
 
@@ -774,30 +727,54 @@ namespace NP.Convex.Shape{
 
 			return CollisionResult.None;
 		}
-		#endregion
 
-		#region IConvexCollisioin
-		/**
-		 * Return true if circle contain point
-		 **/
-		public override bool ContainPoint2D(Vector2 point){
-
-			float xMin = _center.x - _radius;
-			float xMax = _center.x + _radius;
-			float yMin = _center.y - _radius;
-			float yMax = _center.y + _radius;
-
-			if (point.x >= xMin && point.x <= xMax
-				&& point.y >= yMin && point.y <= yMax)
-				return true;
-
-			return false;
+		protected override CollisionResult ContactWithPoint (ConvexPoint otherPoint)
+		{
+			return ContainPoint2D (otherPoint.Center);
 		}
 		#endregion
 
 	}
 
+	/**
+	 * A point shape
+	 * 
+	 * Implement IConvexCircleCollision interface
+	 **/
+	public class ConvexPoint : ConvexShape{
 
+		#region Properties
+		Vector2 _center;
+		public Vector2 Center{ get{ return _center;} set{ _center = value;}}
+		#endregion
+
+		#region Shape collision calculation
+		public override CollisionResult ContainPoint2D (Vector2 point)
+		{
+			if (_center == point)
+				return CollisionResult.Overlap;
+
+			return CollisionResult.None;
+		}
+
+		protected override CollisionResult ContactWithRectangle (ConvexRect otherRect){
+
+			return otherRect.IntersectWithShape (this);
+		}
+
+
+		protected override CollisionResult ContactWithCircle (ConvexCircle otherCircle){
+
+			return otherCircle.IntersectWithShape (this);
+		}
+
+
+		protected override CollisionResult ContactWithPoint (ConvexPoint otherPoint){
+
+			return ContainPoint2D (otherPoint.Center);
+		}
+		#endregion
+	}
 }
 
 

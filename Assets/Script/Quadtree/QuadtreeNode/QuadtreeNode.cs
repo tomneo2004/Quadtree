@@ -7,6 +7,9 @@ using NP.Convex.Shape;
 
 namespace NP.NPQuadtree{
 
+	/**
+	 * Common interface
+	 **/
 	public interface IQuadtreeBase{
 
 		/**
@@ -15,42 +18,28 @@ namespace NP.NPQuadtree{
 		ConvexShape GetShape ();
 	}
 
+	/**
+	 * Interface for all kind of quadtree agent
+	 **/
 	public interface IQuadtreeAgent : IQuadtreeBase{
-
-		/**
-		 * Nofity when agent is about to be add to quadtree node
-		 * 
-		 * Param node is the quadtree node you call "Add" on
-		 **/
-		void BeforeAddToQuadtreeNode (QuadtreeNode node);
 
 		/**
 		 * Nofity when agent is added to quadtree node
 		 * 
 		 * Param node is the quadtree node this agent was added to
 		 **/
-		void AfterAddToQuadtreeNode (QuadtreeNode node);
+		void AddToQuadtreeNode (QuadtreeNode node);
 
 		/**
 		 * Return center point of agent
 		 **/
 		Vector2 GetCenter ();
 
-		/**
-		 * Return gameobject of agent
-		 **/
-		GameObject GetGameObject ();
-
 	}
-
-	public interface IQuadtreeCircleAgent : IQuadtreeAgent{
-
-		/**
-		 * Return radius of circle of this agent
-		 **/
-		float Radius ();
-	}
-
+		
+	/**
+	 * Interface for all kind of query
+	 **/
 	public interface IQuadtreeQuery : IQuadtreeBase{
 
 	}
@@ -162,7 +151,7 @@ namespace NP.NPQuadtree{
 		/**
 		 * Get quadtree's center
 		 **/
-		public Vector2 Center{ get{ return boundary.center;}}
+		public Vector2 Center{ get{ return boundary.Center;}}
 
 		/**
 		 * Total nodes under root QuadtreeNode include child leaf
@@ -270,10 +259,11 @@ namespace NP.NPQuadtree{
 		 **/
 		private void Split(){
 
+			/*
 			#if DEBUG
 			Debug.Log("Split quadtree");
 			#endif
-
+			*/
 			#if DEBUG
 			if(nodes != null){
 				Debug.LogWarning("Child node already exist before split");
@@ -282,28 +272,29 @@ namespace NP.NPQuadtree{
 			#endif
 
 			ConvexRect newBoundary;
-			float width = boundary.width / 2.0f;
-			float height = boundary.height / 2.0f;
+			float width = boundary.Width / 2.0f;
+			float height = boundary.Height / 2.0f;
+			Vector2 topLeftCorner = boundary.AllCorners[0];
 
 			nodes = new QuadtreeNode[4];
 
 			//TopLeft(NorthWest)
-			newBoundary = new ConvexRect(boundary.x, boundary.y, width, height);
+			newBoundary = new ConvexRect(topLeftCorner.x, topLeftCorner.y, width, height);
 			nodes[0] = new QuadtreeNode (this,newBoundary);
 
 
 			//TopRight(NorthEast)
-			newBoundary = new ConvexRect(boundary.x+width, boundary.y, width, height);
+			newBoundary = new ConvexRect(topLeftCorner.x+width, topLeftCorner.y, width, height);
 			nodes[1] = new QuadtreeNode (this, newBoundary);
 
 
 			//BottomRight(SouthEast)
-			newBoundary = new ConvexRect(boundary.x+width, boundary.y - height, width, height);
+			newBoundary = new ConvexRect(topLeftCorner.x+width, topLeftCorner.y - height, width, height);
 			nodes[2] = new QuadtreeNode (this, newBoundary);
 
 
 			//BottomLeft(SouthWest)
-			newBoundary = new ConvexRect(boundary.x, boundary.y - height, width, height);
+			newBoundary = new ConvexRect(topLeftCorner.x, topLeftCorner.y - height, width, height);
 			nodes[3] = new QuadtreeNode (this, newBoundary);
 		}
 
@@ -323,8 +314,12 @@ namespace NP.NPQuadtree{
 				if (nodes == null)
 					return numElement;
 
-				foreach (QuadtreeNode n in nodes)
-					numElement += n.TotalElements ();
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+				
+					numElement += (er.Current as QuadtreeNode).TotalElements ();
+				}
+					
 			}
 
 
@@ -343,14 +338,20 @@ namespace NP.NPQuadtree{
 			if ((element == null) || (nodes == null))
 				return -1;
 
-			for (int i = 0; i < nodes.Length; i++) {
+			IEnumerator er = nodes.GetEnumerator ();
+			int nodeIndex = 0;
+			while (er.MoveNext ()) {
+			
+				if ((er.Current as QuadtreeNode).boundary.ContainPoint2D (element.GetCenter ()) != CollisionResult.None) {
 
-				if (nodes [i].boundary.ContainPoint2D (element.GetCenter()))
-					return i;
+					return nodeIndex;
+				}
+
+				nodeIndex++;
 			}
 
 			#if DEBUG
-			Debug.LogError("Element does not located in this node fix me");
+			Debug.LogError("Element "+((QtAgent)element).agGameObject.name+" does not located in this node fix me");
 			#endif
 
 			return -1;
@@ -369,10 +370,12 @@ namespace NP.NPQuadtree{
 
 			if (includeChild && (nodes != null)) {
 			
-				foreach (QuadtreeNode n in nodes) {
-
-					result.AddRange (n.GetAllElements (overlap, includeChild));
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+				
+					result.AddRange ((er.Current as QuadtreeNode).GetAllElements (overlap, includeChild));
 				}
+					
 			}
 
 			result.AddRange (elements);
@@ -393,26 +396,27 @@ namespace NP.NPQuadtree{
 
 				bool cleanChildeNodes = true;
 
-				foreach (QuadtreeNode n in nodes) {
-
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+				
 					//tell child node to re-organize
-					n.ReOrganize ();
+					(er.Current as QuadtreeNode).ReOrganize ();
 
 					//if child has 4 child nodes
-					if (!n.IsLeaf) {
+					if (!(er.Current as QuadtreeNode).IsLeaf) {
 
 						cleanChildeNodes = false;
 					}
 
 					//if child has elements
-					if (n.TotalElements (true, false) != 0) {
+					if ((er.Current as QuadtreeNode).TotalElements (true, false) != 0) {
 
 						cleanChildeNodes = false;
 					}
 
+
 				}
-
-
+					
 				if (cleanChildeNodes)
 					nodes = null;
 			}
@@ -446,17 +450,16 @@ namespace NP.NPQuadtree{
 			//perform add elements
 			if (elementsNextFrame != null && elementsNextFrame.Count > 0) {
 
-				foreach (IQuadtreeAgent element in elementsNextFrame) {
+				List<IQuadtreeAgent>.Enumerator er = elementsNextFrame.GetEnumerator ();
+				while (er.MoveNext ()) {
 				
-					Add (element);
+					Add (er.Current);
 				}
 
 				elementsNextFrame.Clear ();
 			}
 
 			//orgnize tree
-			//ReOrganize();
-
 			if (organizeTree) {
 
 				ReOrganize ();
@@ -489,11 +492,6 @@ namespace NP.NPQuadtree{
 				return false;
 			}
 
-			//notify element is about to add it to certain quadtree node
-			newElement.BeforeAddToQuadtreeNode (this);
-
-			Debug.Log("Level "+ Depth);
-
 			//If we have child node
 			if (nodes != null) {
 
@@ -503,12 +501,12 @@ namespace NP.NPQuadtree{
 				if (nodeIndex < 0) {
 
 					#if DEBUG
-					Debug.LogError("No child node found"+" node boundary center "+this.boundary.center
+					Debug.LogError("No child node found"+" node boundary center "+this.boundary.Center
 						+ "level "+Depth 
 						+" xMin " + boundary.xMin + " xMax "+boundary.xMax
 						+" yMin " + boundary.yMin + " yMax "+boundary.yMax
 						+" element center "+newElement.GetCenter()
-						+ " element last center "+ newElement.GetGameObject().GetComponent<QtAgent>().lastPosition);
+						+ " element last center "+ (newElement as QtAgent).lastPosition);
 					#endif
 					return false;
 				}
@@ -527,7 +525,7 @@ namespace NP.NPQuadtree{
 					//Element's boudnary overlap multiple child node, add it to this node
 					overlapElements.Add (newElement);
 					//notify element it has been added to this quadtree node
-					newElement.AfterAddToQuadtreeNode (this);
+					newElement.AddToQuadtreeNode (this);
 					return true;
 
 				case CollisionResult.None:
@@ -545,7 +543,7 @@ namespace NP.NPQuadtree{
 			elements.Add (newElement);
 
 			//notify element it has been added to this quadtree node
-			newElement.AfterAddToQuadtreeNode (this);
+			newElement.AddToQuadtreeNode (this);
 
 			//Split if needed
 			if (elements.Count > elementCapacity) {
@@ -553,17 +551,24 @@ namespace NP.NPQuadtree{
 				Split ();
 
 				//Distribute elements to corespond child node
-				foreach (IQuadtreeAgent e in elements) {
+				List<IQuadtreeAgent>.Enumerator er = elements.GetEnumerator();
+				while (er.MoveNext ()) {
 				
-					//if elemnt out of node boundary
-					if (!Add (e)) {
-						#if DEBUG
-						Debug.LogWarning("Distribute element to child node fail, elemnt is out of node boundary." +
-							"We need to add from root");
-						#endif
+					if (boundary.ContainPoint2D (er.Current.GetCenter ()) != CollisionResult.None) {
+					
+						if (!Add (er.Current)) {
+							#if DEBUG
+							Debug.LogWarning("Distribute element to child node fail, elemnt is out of node boundary." +
+								"We need to add from root");
+							#endif
 
-						//add element from root
-						rootQuadtree ().Add (e);
+							//add element from root if can't add to child node
+							rootQuadtree ().Add (er.Current);
+						}
+
+					} else {
+
+						rootQuadtree ().Add (er.Current);
 					}
 						
 				}
@@ -633,7 +638,7 @@ namespace NP.NPQuadtree{
 			if (element == null)
 				return null;
 
-			if (!boundary.ContainPoint2D (element.GetCenter())) {
+			if (boundary.ContainPoint2D (element.GetCenter()) == CollisionResult.None) {
 
 				//element never added to quadtree
 				#if DEBUG
@@ -759,13 +764,11 @@ namespace NP.NPQuadtree{
 				return result;
 
 			//search child nodes
-			if (nodes != null) {
-
-				foreach (QuadtreeNode n in nodes) {
-
-					//downward search child
-					result.AddRange (n.FindElements (element, false, includeSelf, compare));
-				}
+			IEnumerator er = nodes.GetEnumerator();
+			while (er.MoveNext ()) {
+			
+				//downward search child
+				result.AddRange ((er.Current as QuadtreeNode).FindElements (element, false, includeSelf, compare));
 			}
 
 			//add this node's elements
@@ -781,11 +784,11 @@ namespace NP.NPQuadtree{
 				
 				List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
 
-				foreach (IQuadtreeAgent e in result) {
-
-					if (compare (e))
-						filterResult.Add (e);
-						
+				List<IQuadtreeAgent>.Enumerator qer = result.GetEnumerator ();
+				while (qer.MoveNext ()) {
+				
+					if (compare (qer.Current))
+						filterResult.Add (qer.Current);
 				}
 
 				return filterResult;
@@ -885,11 +888,11 @@ namespace NP.NPQuadtree{
 			//search child nodes
 			if (nodes != null) {
 
-				foreach (QuadtreeNode n in nodes) {
-
-					//downward search child
-					result.AddRange (n.QueryRange (query, false));
+				IEnumerator er = nodes.GetEnumerator ();
+				while (er.MoveNext ()) {
+					result.AddRange ((er.Current as QuadtreeNode).QueryRange (query, false));
 				}
+					
 			}
 
 			//add this node's elements
@@ -898,10 +901,13 @@ namespace NP.NPQuadtree{
 
 			//Check if any of element contact query shape
 			List<IQuadtreeAgent> filterResult = new List<IQuadtreeAgent>();
-			foreach (IQuadtreeAgent agent in result) {
 
-				if (agent.GetShape ().IntersectWithShape (query.GetShape ()) != CollisionResult.None) {
-					filterResult.Add (agent);
+			List<IQuadtreeAgent>.Enumerator resultEr = result.GetEnumerator();
+			while(resultEr.MoveNext()){
+
+				if(resultEr.Current.GetShape().IntersectWithShape(query.GetShape()) != CollisionResult.None){
+				
+					filterResult.Add(resultEr.Current);
 				}
 			}
 
@@ -945,33 +951,34 @@ namespace NP.NPQuadtree{
 			//boundary for drawing
 			float offset = 0.0f;
 			ConvexRect dBoundary = boundary;
+			Vector2 topLeftCorner = boundary.AllCorners[0];
 			if (parentNode != null) {
 
-				dBoundary.x += offset;
-				dBoundary.y += offset;
-				dBoundary.width -= offset*2;
-				dBoundary.height -= offset*2;
+				topLeftCorner.x += offset;
+				topLeftCorner.y += offset;
+				dBoundary.Width -= offset*2;
+				dBoundary.Height -= offset*2;
 			}
 
 			//Gizmos.color = debugDrawColor;
-			Handles.color = debugDrawColor;
-			Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
+			Gizmos.color = debugDrawColor;
+			//Handles.zTest = UnityEngine.Rendering.CompareFunction.Less;
 
 			//LT->RT
-			Handles.DrawLine (new Vector3 (dBoundary.x, dBoundary.y, z),
-				new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y, z));
+			Gizmos.DrawLine (new Vector3 (topLeftCorner.x, topLeftCorner.y, z),
+				new Vector3 (topLeftCorner.x + dBoundary.Width, topLeftCorner.y, z));
 
 			//RT->RB
-			Handles.DrawLine (new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y, z),
-				new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y - dBoundary.height, z));
+			Gizmos.DrawLine (new Vector3 (topLeftCorner.x + dBoundary.Width, topLeftCorner.y, z),
+				new Vector3 (topLeftCorner.x + dBoundary.Width, topLeftCorner.y - dBoundary.Height, z));
 
 			//RB->LB
-			Handles.DrawLine (new Vector3 (dBoundary.x + dBoundary.width, dBoundary.y - dBoundary.height, z),
-				new Vector3 (dBoundary.x, dBoundary.y - dBoundary.height, z));
+			Gizmos.DrawLine (new Vector3 (topLeftCorner.x + dBoundary.Width, topLeftCorner.y - dBoundary.Height, z),
+				new Vector3 (topLeftCorner.x, topLeftCorner.y - dBoundary.Height, z));
 
 			//LB->LT
-			Handles.DrawLine (new Vector3 (dBoundary.x, dBoundary.y - dBoundary.height, z),
-				new Vector3 (dBoundary.x, dBoundary.y, z));
+			Gizmos.DrawLine (new Vector3 (topLeftCorner.x, topLeftCorner.y - dBoundary.Height, z),
+				new Vector3 (topLeftCorner.x, topLeftCorner.y, z));
 
 
 		}
@@ -985,7 +992,7 @@ namespace NP.NPQuadtree{
 				+ " is root " + IsRoot
 				+ " elements: " + elements.Count
 				+ " overlap elements: " + overlapElements.Count 
-				+ " Center: " + boundary.center);
+				+ " Center: " + boundary.Center);
 
 
 			if (nodes != null) {
